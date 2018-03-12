@@ -1,0 +1,48 @@
+※The act of posting andsharing problems & solutions to the outside of the company online/offlineis strictly prohibited.  SW Expert Academy Problems is open only to SamsungElectronics employees.
+
+Execution Time
+3 sec(C/C++) / 5 sec(JAVA) for 20 cases combined
+Memory
+Maximum 256MB available for heap and stack combined (note: Maximum 1 MB can be used for stack)
+
+You are given an array A[1…N] of length N. Write a program that finds the largest sum of contiguous subarray . (1 ≤ i ≤ j ≤ N) 
+
+[Input]
+The first line contains a single integer Tㅡthe number of total test cases. (T ≤ 20)
+The first line of each test case contains N. (N ≤ 200,000)
+Each line of the following N lines contains A[i] in order. (|A[i]| ≤1,000)
+
+[Output]
+For each test case, on a single line, print the number of test case “#(TC) “and the maximum value of the corresponding test case.
+Input Example
+2          //Number of total test case
+1          //N value (N=1)
+3          //Array value (A[1] = 3)
+5          //N value (N=5)
+1 3 -5 3 6  //Array value (A[1] A[2] A[3] A[4] A[5]
+Output Example
+#1 3   //1st TC output value
+#2 9
+
+ 
+ 
+
+
+
+ 
+
+
+
+ 
+
+
+
+ 
+
+
+
+ 
+
+
+
+ 
