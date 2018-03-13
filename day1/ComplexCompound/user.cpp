@@ -44,6 +44,10 @@ struct Entry *create_Entry(int db_idx, int valid);
 
 void destroy_Entry(struct Entry *entry);
 
+int checkDupl(int db_idx);
+
+void addDupl(int db_idx);
+
 struct Entry str1_bucket[HASHTABLE_SIZE];
 struct Entry str2_bucket[HASHTABLE_SIZE];
 struct Entry str3_bucket[HASHTABLE_SIZE];
@@ -51,6 +55,7 @@ struct Entry str4_bucket[HASHTABLE_SIZE];
 struct Entry str5_bucket[HASHTABLE_SIZE];
 
 struct SInfo comp_db[COMP_MAX_NUM];
+int dupl_pool[5];
 int db_idx = 0;
 
 void set_empty(struct Entry *entry) {
@@ -135,7 +140,6 @@ void init() {
         set_empty(&str4_bucket[i]);
         set_empty(&str5_bucket[i]);
     }
-
     db_idx = 0;
 }
 
@@ -154,6 +158,9 @@ int SearchBestCase(SInfo info) {
 
     int comp_max_score = 0;
 
+//    for (int i = 0; i < 5; i++) {
+//        dupl_pool[i] = -1;
+//    }
     comp_max_score = computeScore(info, comp_max_score, info.first, str1_bucket);
     comp_max_score = computeScore(info, comp_max_score, info.second, str2_bucket);
     comp_max_score = computeScore(info, comp_max_score, info.third, str3_bucket);
@@ -172,19 +179,50 @@ int computeScore(SInfo &info, int comp_max_score, char *comp_str, struct Entry *
     while (locEntry && locEntry->valid == 1) {
         if (equalStr(locEntry->str, comp_str) == 1) {
             int loc_db_idx = locEntry->db_idx;
+//            if (checkDupl(loc_db_idx) == 0) {
             struct SInfo loc_sinfo = comp_db[loc_db_idx];
-
-            int s1 = CalculateRelation(info.first, loc_sinfo.first);
-            int s2 = CalculateRelation(info.second, loc_sinfo.second);
-            int s3 = CalculateRelation(info.third, loc_sinfo.third);
-            int s4 = CalculateRelation(info.fourth, loc_sinfo.fourth);
-            int s5 = CalculateRelation(info.fifth, loc_sinfo.fifth);
+            int s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
+            // optimize
+            s1 = CalculateRelation(info.first, loc_sinfo.first);
+            if (500 - comp_max_score > 100 - s1) {
+                s2 = CalculateRelation(info.second, loc_sinfo.second);
+                if (500 - comp_max_score > 100 - s2) {
+                    s3 = CalculateRelation(info.third, loc_sinfo.third);
+                    if (500 - comp_max_score > 100 - s3) {
+                        s4 = CalculateRelation(info.fourth, loc_sinfo.fourth);
+                        if (500 - comp_max_score > 100 - s4) {
+                            s5 = CalculateRelation(info.fifth, loc_sinfo.fifth);
+                        }
+                    }
+                }
+            }
             new_score = s1 + s2 + s3 + s4 + s5;
             if (new_score > comp_max_score) {
                 comp_max_score = new_score;
             }
+//                addDupl(loc_db_idx);
+//            }
         }
         locEntry = locEntry->next;
     }
     return comp_max_score;
+}
+
+int checkDupl(int db_idx) {
+    int i = 0;
+    for (; i < 5 && dupl_pool[i] != db_idx; i++) {
+    }
+    if (i == 5) {
+        return 0;
+    }
+    return 1;
+}
+
+void addDupl(int db_idx) {
+    int i = 0;
+    for (; i < 5 && dupl_pool[i] != -1; i++) {
+    }
+    if (i != 5) {
+        dupl_pool[i] = db_idx;
+    }
 }
