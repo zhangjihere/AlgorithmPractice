@@ -71,13 +71,13 @@ void set_empty(struct Entry *entry) {
     }
     entry->db_idx = 0;
     entry->valid = 0;
-    entry->next = 0;
-//    struct Entry *temp = 0;
-//    while (entry->next) {
-//        temp = entry;
-//        entry = entry->next;
-//        destroy_Entry(temp);
-//    }
+//    entry->next = 0;
+    struct Entry *temp = entry;
+    while (entry->next) {
+        temp = entry->next;
+        entry->next = temp->next;
+        destroy_Entry(temp);
+    }
 }
 
 void copyStr(char *dest, const char *src) {
