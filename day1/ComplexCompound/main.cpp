@@ -77,7 +77,7 @@ int main() {
     //	std::cout.rdbuf(out.rdbuf()); //redirect std::cin to in.txt!
     
     //    freopen("sample_input.txt", "r", stdin);
-    freopen("sample_input.txt", "r", stdin);
+    freopen("system_input.txt", "r", stdin);
     cin >> T;
     
     for (test_case = 1; test_case <= T; test_case++) {

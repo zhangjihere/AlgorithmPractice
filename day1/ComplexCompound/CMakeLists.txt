@@ -6,4 +6,5 @@ set(src main.cpp
 
 file(COPY sample_input.txt DESTINATION ${PROJECT_BINARY_DIR})
 file(COPY system_input.txt DESTINATION ${PROJECT_BINARY_DIR})
+file(COPY my_input.txt DESTINATION ${PROJECT_BINARY_DIR})
 add_executable(${PROJECT_NAME} ${src})
