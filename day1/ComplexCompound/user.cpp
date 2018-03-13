@@ -2,7 +2,14 @@
 // Created by zhangji on 3/12/18.
 //
 
-#include <malloc.h>
+#ifndef __clang__
+# include <malloc.h>
+#else
+
+# include <cstdlib>
+
+#endif
+
 
 extern int CalculateRelation(char *src, char *dst);
 
@@ -36,7 +43,7 @@ void copyStr(char *dest, const char *src);
 
 unsigned long getHashcode(const char *str);
 
-int equalStr(const char *str1, const char *base);
+int equalStr(const char *dest, const char *src);
 
 int computeScore(SInfo &info, int comp_max_score, char *comp_str, struct Entry *bucket);
 
@@ -74,22 +81,47 @@ void set_empty(struct Entry *entry) {
 }
 
 void copyStr(char *dest, const char *src) {
-    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
+/*    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
         dest[i] = src[i];
+    }*/
+    int i = 0;
+    while (src[i]) {
+        dest[i] = src[i];
+        i++;
     }
+    dest[i] = 0;
 }
 
-int equalStr(const char *str1, const char *base) {
-    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
-        if (base[i] == '\0') {
+int equalStr(const char *dest, const char *src) {
+/*    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
+        if (src[i] == '\0') {
             return 1;// equals
         } else {
-            if (base[i] == str1[i]) {
+            if (src[i] == dest[i]) {
                 continue;
             }
             return -1;// not equals
         }
+    }*/
+    int i = 0;
+    while (src[i] && dest[i]) {
+        if (src[i] != dest[i])
+            return 0;
+        i++;
     }
+    if (src[i] == 0 && dest[i] == 0)
+        return 1;
+    return 0;
+/*    int i = 0;
+    for (; i < COMP_MAX_NUM && dest[i] == src[i]; i++) {
+        if (dest[i] == 0 && src[i] == 0) {
+            return 1;
+        }
+    }
+    if (i == COMP_MAX_NUM) {
+        return 1;
+    }
+    return -1;*/
 }
 
 struct Entry *create_Entry(int db_idx, int valid) {
@@ -174,7 +206,6 @@ int computeScore(SInfo &info, int comp_max_score, char *comp_str, struct Entry *
     unsigned long hashcode = getHashcode(comp_str);
     unsigned long pos = hashcode % HASHTABLE_SIZE;
     struct Entry *locEntry = &bucket[pos];
-    struct Entry *previousEntry = &bucket[pos];
     int new_score = 0;
     while (locEntry && locEntry->valid == 1) {
         if (equalStr(locEntry->str, comp_str) == 1) {
