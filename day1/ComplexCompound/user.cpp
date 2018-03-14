@@ -71,29 +71,29 @@ void set_empty(struct Entry *entry) {
     }
     entry->db_idx = 0;
     entry->valid = 0;
-//    entry->next = 0;
-    struct Entry *temp = entry;
-    while (entry->next) {
-        temp = entry->next;
-        entry->next = temp->next;
-        destroy_Entry(temp);
-    }
+    entry->next = 0;
+//    struct Entry *temp = entry;
+//    while (entry->next) {
+//        temp = entry->next;
+//        entry->next = temp->next;
+//        destroy_Entry(temp);
+//    }
 }
 
 void copyStr(char *dest, const char *src) {
-/*    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
+    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
         dest[i] = src[i];
-    }*/
-    int i = 0;
+    }
+/*    int i = 0;
     while (src[i]) {
         dest[i] = src[i];
         i++;
     }
-    dest[i] = 0;
+    dest[i] = 0;*/
 }
 
 int equalStr(const char *dest, const char *src) {
-/*    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
+    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
         if (src[i] == '\0') {
             return 1;// equals
         } else {
@@ -102,8 +102,8 @@ int equalStr(const char *dest, const char *src) {
             }
             return -1;// not equals
         }
-    }*/
-    int i = 0;
+    }
+/*    int i = 0;
     while (src[i] && dest[i]) {
         if (src[i] != dest[i])
             return 0;
@@ -111,7 +111,7 @@ int equalStr(const char *dest, const char *src) {
     }
     if (src[i] == 0 && dest[i] == 0)
         return 1;
-    return 0;
+    return 0;*/
 /*    int i = 0;
     for (; i < COMP_MAX_NUM && dest[i] == src[i]; i++) {
         if (dest[i] == 0 && src[i] == 0) {
