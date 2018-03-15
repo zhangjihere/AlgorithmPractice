@@ -143,7 +143,7 @@ static void run() {
             score = 100 * cutline / numObserve;
     }
 
-    printf("observe %d, target %d\n", numObserve, cutline);
+    printf("my: %d target: %d\n", numObserve, cutline);
 }
 
 int main() {
