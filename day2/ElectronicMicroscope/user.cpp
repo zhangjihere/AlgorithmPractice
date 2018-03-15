@@ -2,10 +2,17 @@
 // Created by zhangji on 3/14/18.
 //
 
+#ifndef __clang__
 # include <malloc.h>
+#else
+
+# include <cstdlib>
+
+#endif
 
 enum {
-    MAX_N = 100
+    MAX_N = 100,
+    TR_B = 4
 };
 
 typedef struct {
@@ -19,10 +26,7 @@ typedef struct {
 } RESULT;
 
 struct Node {
-    struct Node *n1;
-    struct Node *n2;
-    struct Node *n3;
-    struct Node *n4;
+    struct Node *branch[TR_B];
     int ject;
 };
 
@@ -36,9 +40,11 @@ int my_abs(int x);
 
 void create4Tree(int x, int y, int size, Node *node, int no_scope);
 
-Node *create_Node(int y, int x, int s, int ject);
+Node *create_Node(int ject);
 
 int checkTree4(int x, int y, int size, Node *node, int new_obv);
+
+void compute4Coordinate(int x, int y, int size, int left_top[][2]);
 
 void init(int cell[MAX_N][MAX_N], int N);
 
@@ -89,7 +95,7 @@ int my_abs(int x) {
     return x;
 }
 
-Node *create_Node(int y, int x, int s, int ject) {
+Node *create_Node(int ject) {
     Node *newNode = (Node *) malloc(sizeof(Node));
     if (newNode) {
         newNode->ject = ject;
@@ -97,85 +103,42 @@ Node *create_Node(int y, int x, int s, int ject) {
     return newNode;
 }
 
-void init(int cell[MAX_N][MAX_N], int N) {
-    result.count = 0;
-
-    target_size = N;
-    scope_size = next_power_by_2(target_size);
-    int ject = observe(0, 0, scope_size);
-    tree4 = create_Node(0, 0, scope_size, ject);
-    create4Tree(0, 0, scope_size, tree4, 0);
-}
-
 void create4Tree(int x, int y, int size, Node *node, int no_scope) {
-    int x1 = x, y1 = y;
-    int x3 = (2 * x + size) / 2, y3 = y;
-    int x2 = x, y2 = (2 * y + size) / 2;
-    int x4 = (2 * x + size) / 2, y4 = (2 * y + size) / 2;
+    int left_top[TR_B][2];
+    compute4Coordinate(x, y, size, left_top);
     size = size / 2;
     if (size == 0) {
         return;
     }
 
-    if (x1 < target_size && y1 < target_size) {
-        int o1 = 0, no_scope1 = no_scope;
-        if (no_scope1 == 0) {
-            o1 = observe(y1, x1, size);
-            if (o1 == 0) {
-                no_scope1 = 1;
+    for (int i = 0; i < TR_B; i++) {
+        if (left_top[i][0] < target_size && left_top[i][1] < target_size) {
+            int obv = 0, no_scope_i = no_scope;
+            if (no_scope_i == 0) {
+                obv = observe(left_top[i][1], left_top[i][0], size);
+                if (obv == 0) {
+                    no_scope_i = 1;
+                }
             }
+            Node *node1 = create_Node(obv);
+            node->branch[i] = node1;
+            create4Tree(left_top[i][0], left_top[i][1], size, node1, no_scope_i);
         }
-        Node *node1 = create_Node(y1, x2, size, o1);
-        node->n1 = node1;
-        create4Tree(x1, y1, size, node1, no_scope1);
-    }
-
-    if (x2 < target_size && y2 < target_size) {
-        int o2 = 0, no_scope2 = no_scope;
-        if (no_scope2 == 0) {
-            o2 = observe(y2, x2, size);
-            if (o2 == 0) {
-                no_scope2 = 1;
-            }
-        }
-        Node *node2 = create_Node(y2, x2, size, o2);
-        node->n2 = node2;
-        create4Tree(x2, y2, size, node2, no_scope2);
-    }
-
-    if (x3 < target_size && y3 < target_size) {
-        int o3 = 0, no_scope3 = no_scope;
-        if (no_scope3 == 0) {
-            o3 = observe(y3, x3, size);
-            if (o3 == 0) {
-                no_scope3 = 1;
-            }
-        }
-        Node *node3 = create_Node(y3, x3, size, o3);
-        node->n3 = node3;
-        create4Tree(x3, y3, size, node3, no_scope3);
-    }
-
-    if (x4 < target_size && y4 < target_size) {
-        int o4 = 0, no_scope4 = no_scope;
-        if (no_scope4 == 0) {
-            o4 = observe(y4, x4, size);
-            if (o4 == 0) {
-                no_scope4 = 1;
-            }
-        }
-        Node *node4 = create_Node(y4, x4, size, o4);
-        node->n4 = node4;
-        create4Tree(x4, y4, size, node4, no_scope4);
     }
 
 }
+
+void compute4Coordinate(int x, int y, int size, int left_top[][2]) {
+    left_top[0][0] = x, left_top[0][1] = y;
+    left_top[2][0] = (2 * x + size) / 2, left_top[2][1] = y;
+    left_top[1][0] = x, left_top[1][1] = (2 * y + size) / 2;
+    left_top[3][0] = (2 * x + size) / 2, left_top[3][1] = (2 * y + size) / 2;
+}
+
 // 1 3 2 4 better than 1 4 3 2, better than 1 2 3 4
 int checkTree4(int x, int y, int size, Node *node, int new_obv) {
-    int x1 = x, y1 = y;
-    int x3 = (2 * x + size) / 2, y3 = y;
-    int x2 = x, y2 = (2 * y + size) / 2;
-    int x4 = (2 * x + size) / 2, y4 = (2 * y + size) / 2;
+    int left_top[TR_B][2];
+    compute4Coordinate(x, y, size, left_top);
     size = size / 2;
 
     int origin = node->ject;
@@ -190,85 +153,41 @@ int checkTree4(int x, int y, int size, Node *node, int new_obv) {
         return 0;
     }
 
-    int t_s = 0;
-    int last_t_s = 0;
+    int t_s = 0;        // stat scope square
+    int last_t_s = 0;   // stat last single cell
     int d_s = my_abs(new_obv - origin);
 
-    if (x1 < target_size && y1 < target_size) {
-        int o1 = 0;
-        if (t_s != d_s) {
-            if (size == 1) {
-                o1 = observe(y1, x1, size);
-                if (node->n1->ject != o1) {
-                    last_t_s = checkTree4(x1, y1, size, node->n1, o1);
-                    t_s += last_t_s;
-                }
-            } else {
-                o1 = observe(y1, x1, size);
-                if (node->n1->ject != o1) {
-                    t_s += my_abs(o1 - node->n1->ject);
-                    checkTree4(x1, y1, size, node->n1, o1);
-                }
-            }
-        }
-    }
-    if (x2 < target_size && y2 < target_size) {
-        int o2 = 0;
-        if (size == 1) {
+    for (int i = 0; i < TR_B; i++) {
+        if (left_top[i][0] < target_size && left_top[i][1] < target_size) {
+            int obv = 0;
             if (t_s != d_s) {
-                o2 = observe(y2, x2, size);
-                if (node->n2->ject != o2) {
-                    last_t_s = checkTree4(x2, y2, size, node->n2, o2);
-                    t_s += last_t_s;
-                }
-            }
-        } else {
-            if (t_s != d_s) {
-                o2 = observe(y2, x2, size);
-                if (node->n2->ject != o2) {
-                    t_s += my_abs(o2 - node->n2->ject);
-                    checkTree4(x2, y2, size, node->n2, o2);
-                }
-            }
-        }
-    }
-    if (x3 < target_size && y3 < target_size) {
-        int o3 = 0;
-        if (t_s != d_s) {
-            if (size == 1) {
-                o3 = observe(y3, x3, size);
-                if (node->n3->ject != o3) {
-                    last_t_s = checkTree4(x3, y3, size, node->n3, o3);
-                    t_s += last_t_s;
-                }
-            } else {
-                o3 = observe(y3, x3, size);
-                if (node->n3->ject != o3) {
-                    t_s += my_abs(o3 - node->n3->ject);
-                    checkTree4(x3, y3, size, node->n3, o3);
-                }
-            }
-        }
-    }
-    if (x4 < target_size && y4 < target_size) {
-        int o4 = 0;
-        if (t_s != d_s) {
-            if (size == 1) {
-                o4 = observe(y4, x4, size);
-                if (node->n4->ject != o4) {
-                    last_t_s = checkTree4(x4, y4, size, node->n4, o4);
-                    t_s += last_t_s;
-                }
-            } else {
-                o4 = observe(y4, x4, size);
-                if (node->n4->ject != o4) {
-                    t_s += my_abs(o4 - node->n4->ject);
-                    checkTree4(x4, y4, size, node->n4, o4);
+                if (size == 1) {
+                    obv = observe(left_top[i][1], left_top[i][0], size);
+                    if (node->branch[i]->ject != obv) {
+                        last_t_s = checkTree4(left_top[i][0], left_top[i][1], size, node->branch[i], obv);
+                        t_s += last_t_s;
+                    }
+                } else {
+                    obv = observe(left_top[i][1], left_top[i][0], size);
+                    if (node->branch[i]->ject != obv) {
+                        t_s += my_abs(obv - node->branch[i]->ject);
+                        checkTree4(left_top[i][0], left_top[i][1], size, node->branch[i], obv);
+                    }
                 }
             }
         }
     }
     return 0;
+}
+
+void init(int cell[MAX_N][MAX_N], int N) {
+    result.count = 0;
+
+    target_size = N;
+    scope_size = next_power_by_2(target_size);
+    int ject = observe(0, 0, scope_size);
+    tree4 = create_Node(ject);
+    create4Tree(0, 0, scope_size, tree4, 0);
 }
 
 RESULT infect() {
