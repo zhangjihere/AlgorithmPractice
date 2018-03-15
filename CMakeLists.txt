@@ -7,4 +7,5 @@ add_subdirectory(MaximumSubarray)
 # exam training
 add_subdirectory(day1/WordAppearanceNumber)
 add_subdirectory(day1/ComplexCompound)
+add_subdirectory(day2/ElectronicMicroscope)
 
