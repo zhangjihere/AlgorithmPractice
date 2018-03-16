@@ -38,7 +38,7 @@ int next_power_by_2(int x);
 
 int my_abs(int x);
 
-void create4Tree(int x, int y, int size, Node *node, int no_scope);
+void create4Tree(int x, int y, int size, Node *node, int child_branch_ignore);
 
 Node *create_Node(int ject);
 
@@ -103,7 +103,8 @@ Node *create_Node(int ject) {
     return newNode;
 }
 
-void create4Tree(int x, int y, int size, Node *node, int no_scope) {
+// no_scope is 1 means , the branch's child branches all don't need to call observe(y,x,size) function.
+void create4Tree(int x, int y, int size, Node *node, int child_branch_ignore) {
     int left_top[TR_B][2];
     compute4Coordinate(x, y, size, left_top);
     size = size / 2;
@@ -112,9 +113,9 @@ void create4Tree(int x, int y, int size, Node *node, int no_scope) {
     }
 
     for (int i = 0; i < TR_B; i++) {
-        if (left_top[i][0] < target_size && left_top[i][1] < target_size) {
-            int obv = 0, no_scope_i = no_scope;
-            if (no_scope_i == 0) {
+        if (left_top[i][0] < target_size && left_top[i][1] < target_size) { //optim
+            int obv = 0, no_scope_i = child_branch_ignore;
+            if (no_scope_i == 0) {  //optim
                 obv = observe(left_top[i][1], left_top[i][0], size);
                 if (obv == 0) {
                     no_scope_i = 1;
@@ -158,12 +159,12 @@ int checkTree4(int x, int y, int size, Node *node, int new_obv) {
     int d_s = my_abs(new_obv - origin);
 
     for (int i = 0; i < TR_B; i++) {
-        if (left_top[i][0] < target_size && left_top[i][1] < target_size) {
+        if (left_top[i][0] < target_size && left_top[i][1] < target_size) { //optim
             int obv = 0;
-            if (t_s != d_s) {
+            if (t_s != d_s) { //optim
                 if (size == 1) {
                     obv = observe(left_top[i][1], left_top[i][0], size);
-                    if (node->branch[i]->ject != obv) {
+                    if (node->branch[i]->ject != obv) { //optim
                         last_t_s = checkTree4(left_top[i][0], left_top[i][1], size, node->branch[i], obv);
                         t_s += last_t_s;
                     }
