@@ -1,0 +1,108 @@
+As a Samsung Engineer, You were given a project of making a video streaming software, which you were able to complete in 
+time and received appreciation from your project manager for the quality of work that you did. 
+
+
+
+
+But recently, due to several incidents on data hacking and piracy, Samsung wants you to modify the software to make 
+video unreadable to the hackers if hacked. As such a method for Video Encoding was implemented. You being the developer 
+of the video player would be sent this encoded data, and you need to implement APIs to decode it so that the video can 
+be rendered on the screen. The method to be used for decoding and encoding are discussed below.
+
+
+
+
+A frame in the video is of size 16*16 (pixels).
+16 frames constitute a block.
+1 byte occupies 1 pixel.
+Data is always provided in blocks.
+The value of a pixel can only range from 97 to 160.
+Method used for encoding constitutes of two part::
+a) Constructing a difference block from the Original block.
+b) Using Huffman encoding to encode the data from difference block to stream of array (hereafter referred as encoded 
+data).
+
+
+
+
+A difference block is also a block of 16 frames, with each frame being of size 16*16. The first frame of difference 
+block is same as the original block. Let’s refer any pixel in original block as O[i][x][y] and frame of Difference 
+block as D[i][x][y], where,
+i is the frame index starting from 0 to 15.
+x is the row number of pixel in the frame
+y is the column number of pixel in the frame. Then
+D[0][x][y]=O[0][x][y] for all x,y.
+
+
+
+
+For other frames in difference block, the below mentioned formula is used:-
+D[i][x][y]=O[i][x][y]-O[i-1][x][y]+128.
+
+
+
+
+The difference block thus formed is then encoded using Huffman Encoding. The method for encoding is not informed to 
+you, but how to decode is informed.
+A Huffman code consists of Symbol, Codeword and Codeword Length.
+
+
+
+
+Symbol Codeword Codeword Length Codeword in bits
+A        0           2             00
+B        1           1             1
+C        2           3             010
+D        3           3             011
+
+
+
+
+Constraints are:
+1. 64 <= Number of frames <= 20000.
+2. Bit length of Huffman code <= 21.
+3. 96 <= Data value < 160.
+4. Size of Huffman code table <= 128.
+5. 0 is padded at end to complete encoded data in a block.
+6. Encoding is done block by block.
+7. Frame number starts from 0.
+8. A symbol will be prefixed with 0 if required, to match the length.
+
+
+
+
+You are required to implement following APIs:
+Void Init(int frame_num, int * enc_data_len, unsigned char * encoded_data, int size_huffman_table, struct huffmanCode * huffman_codes)
+Initializes test case.  Will be called once at the start of each test case.
+where:
+frame_num -> number of frames the data contains.
+Enc_data_len -> array of size of length of encoded data for each block
+Encoded_data -> data after encoded with Huffman code.
+size_huffman_table  -> size of Huffman table.
+huffman_codes -> Huffman code table.
+
+
+
+
+Void Goto(int index)
+Set the current frame number to index. 
+index -> frame number to be set.
+
+
+
+
+Tick( unsigned char *screen)
+Fills the screen object with current frame.  Once filled, frame number will be increased by 1. If reached last frame, 
+frame number cannot be increased to protect overflow.  Instead last frame will be filled each time until another frame 
+number is set by goto() function.
+
+
+
+
+[Output Example]
+#1 15
+#2 59
+#3 82
+#4 80
+#5 354
+total score = 100
