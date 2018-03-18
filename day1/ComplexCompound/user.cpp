@@ -131,6 +131,7 @@ struct Entry *create_Entry(int db_idx, int valid) {
         newEntry->db_idx = db_idx;
         newEntry->valid = valid;
     }
+
     return newEntry;
 }
 
