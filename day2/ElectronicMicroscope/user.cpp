@@ -114,16 +114,16 @@ void create4Tree(int x, int y, int size, Node *node, int child_branch_ignore) {
 
     for (int i = 0; i < TR_B; i++) {
         if (left_top[i][0] < target_size && left_top[i][1] < target_size) { //optim
-            int obv = 0, no_scope_i = child_branch_ignore;
-            if (no_scope_i == 0) {  //optim
+            int obv = 0, child_branch_ignore_i = child_branch_ignore;
+            if (child_branch_ignore_i == 0) {  //optim
                 obv = observe(left_top[i][1], left_top[i][0], size);
                 if (obv == 0) {
-                    no_scope_i = 1;
+                    child_branch_ignore_i = 1;
                 }
             }
-            Node *node1 = create_Node(obv);
-            node->branch[i] = node1;
-            create4Tree(left_top[i][0], left_top[i][1], size, node1, no_scope_i);
+            Node *new_node = create_Node(obv);
+            node->branch[i] = new_node;
+            create4Tree(left_top[i][0], left_top[i][1], size, new_node, child_branch_ignore_i);
         }
     }
 
