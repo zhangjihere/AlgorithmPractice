@@ -103,6 +103,7 @@ int equalStr(const char *dest, const char *src) {
             return -1;// not equals
         }
     }
+    return 1;
 /*    int i = 0;
     while (src[i] && dest[i]) {
         if (src[i] != dest[i])
