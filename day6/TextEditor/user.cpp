@@ -9,7 +9,13 @@
      |1|
 */
 
-#include <malloc.h>
+#ifndef __clang__
+# include <malloc.h>
+#else
+
+# include <cstdlib>
+
+#endif
 
 enum {
     MAX_R_C = 700
@@ -31,18 +37,25 @@ struct Cell *createNewCell(char ch);
 
 void shiftDownArray(int pos);
 
+
+struct Cell *cell_db[(MAX_R_C + 1) * (MAX_R_C + 1)];
+int db_idx;
+int flag;
+
 RowMeta row_meta[MAX_R_C + 1];
 static int r_c_num; // the number of inputed row
 static int cur_row, cur_col;
 static struct Cell *cur_cell;
 
 struct Cell *createNewCell(char ch) {
-    struct Cell *new_cell = (struct Cell *) malloc(sizeof(struct Cell));
+//    struct Cell *new_cell = (struct Cell *) malloc(sizeof(struct Cell));
+    struct Cell *new_cell = cell_db[db_idx];
     if (new_cell) {
         new_cell->ch = ch;
         new_cell->left = nullptr;
         new_cell->right = nullptr;
     }
+    db_idx++;
     return new_cell;
 }
 
@@ -53,7 +66,15 @@ void shiftDownArray(int pos) {
 }
 
 void init(int n) {
-//    printf("init");
+    db_idx = 0;
+    int db_len = (MAX_R_C + 1) * (MAX_R_C + 1);
+    if (flag != 1) {
+        for (int i = 0; i < db_len; i++) {
+            cell_db[i] = (struct Cell *) malloc(sizeof(struct Cell));
+        }
+    }
+    flag = 1;
+
     r_c_num = n;
     cur_row = cur_col = 1;
     for (int i = 1; i <= r_c_num; i++) {
