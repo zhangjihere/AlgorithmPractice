@@ -3,7 +3,9 @@
 //
 
 #ifndef __clang__
+
 # include <malloc.h>
+
 #else
 
 # include <cstdlib>
@@ -71,7 +73,7 @@ void set_empty(struct Entry *entry) {
     }
     entry->db_idx = 0;
     entry->valid = 0;
-    entry->next = 0;
+    entry->next = nullptr;
 //    struct Entry *temp = entry;
 //    while (entry->next) {
 //        temp = entry->next;
@@ -81,27 +83,26 @@ void set_empty(struct Entry *entry) {
 }
 
 void copyStr(char *dest, const char *src) {
-    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
+/*    for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
         dest[i] = src[i];
-    }
-/*    int i = 0;
+    }*/
+    int i = 0;
     while (src[i]) {
         dest[i] = src[i];
         i++;
     }
-    dest[i] = 0;*/
+    dest[i] = 0;
 }
 
 int equalStr(const char *dest, const char *src) {
     for (int i = 0; i < COMP_SIG_MAX_LEN; i++) {
         if (src[i] == '\0') {
             return 1;// equals
-        } else {
-            if (src[i] == dest[i]) {
-                continue;
-            }
-            return -1;// not equals
         }
+        if (src[i] == dest[i]) {
+            continue;
+        }
+        return -1;// not equals
     }
     return 1;
 /*    int i = 0;
@@ -113,6 +114,7 @@ int equalStr(const char *dest, const char *src) {
     if (src[i] == 0 && dest[i] == 0)
         return 1;
     return 0;*/
+
 /*    int i = 0;
     for (; i < COMP_MAX_NUM && dest[i] == src[i]; i++) {
         if (dest[i] == 0 && src[i] == 0) {
@@ -192,9 +194,6 @@ int SearchBestCase(SInfo info) {
 
     int comp_max_score = 0;
 
-//    for (int i = 0; i < 5; i++) {
-//        dupl_pool[i] = -1;
-//    }
     comp_max_score = computeScore(info, comp_max_score, info.first, str1_bucket);
     comp_max_score = computeScore(info, comp_max_score, info.second, str2_bucket);
     comp_max_score = computeScore(info, comp_max_score, info.third, str3_bucket);
@@ -212,7 +211,6 @@ int computeScore(SInfo &info, int comp_max_score, char *comp_str, struct Entry *
     while (locEntry && locEntry->valid == 1) {
         if (equalStr(locEntry->str, comp_str) == 1) {
             int loc_db_idx = locEntry->db_idx;
-//            if (checkDupl(loc_db_idx) == 0) {
             struct SInfo loc_sinfo = comp_db[loc_db_idx];
             int s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
             // optimize
@@ -233,8 +231,6 @@ int computeScore(SInfo &info, int comp_max_score, char *comp_str, struct Entry *
             if (new_score > comp_max_score) {
                 comp_max_score = new_score;
             }
-//                addDupl(loc_db_idx);
-//            }
         }
         locEntry = locEntry->next;
     }
