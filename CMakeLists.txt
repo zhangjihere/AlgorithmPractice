@@ -11,4 +11,5 @@ add_subdirectory(day2/ElectronicMicroscope)
 add_subdirectory(day2/LCS)
 add_subdirectory(day4/VideoEncoding)
 add_subdirectory(day5/FilesystemImplementation)
+add_subdirectory(day6/TextEditor)
 
