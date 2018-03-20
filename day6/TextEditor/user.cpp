@@ -23,11 +23,11 @@ enum {
     MAX_R_C = 700
 };
 
-struct Cell {
+typedef struct cell_t {
     char ch;
-    Cell *left;
-    Cell *right;
-};
+    cell_t *left;
+    cell_t *right;
+} Cell;
 
 struct RowMeta {
     Cell *row;
