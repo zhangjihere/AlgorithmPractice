@@ -10,7 +10,9 @@
 */
 
 #ifndef __clang__
+
 # include <malloc.h>
+
 #else
 
 # include <cstdlib>
@@ -30,22 +32,25 @@ struct Cell {
 typedef struct {
     struct Cell *row;
     int last_col;
-    int enter_end;
 } RowMeta;
 
 struct Cell *createNewCell(char ch);
 
+void prepare_cell_db();
+/**
+ * shift the pos element in array down, and the backward elements all shift down one position
+ * @param pos 
+ */
 void shiftDownArray(int pos);
 
+struct Cell *cell_db[(MAX_R_C + 1) * (MAX_R_C + 1)];// for recycle memory usage, reusable Cell array
+int db_idx; // each call of init function, it reset 0
+int flag;   // represent for only once call of prepare_cell_db
 
-struct Cell *cell_db[(MAX_R_C + 1) * (MAX_R_C + 1)];
-int db_idx;
-int flag;
-
-RowMeta row_meta[MAX_R_C + 1];
+RowMeta row_meta[MAX_R_C + 1];// row_meta array by row orber
 static int r_c_num; // the number of inputed row
-static int cur_row, cur_col;
-static struct Cell *cur_cell;
+static int cur_row, cur_col; // current row & colomn position
+static struct Cell *cur_cell;// current cell pointer
 
 struct Cell *createNewCell(char ch) {
 //    struct Cell *new_cell = (struct Cell *) malloc(sizeof(struct Cell));
@@ -59,6 +64,14 @@ struct Cell *createNewCell(char ch) {
     return new_cell;
 }
 
+void prepare_cell_db() {
+    int db_len = (MAX_R_C + 1) * (MAX_R_C + 1);
+    for (int i = 0; i < db_len; i++) {
+        cell_db[i] = (struct Cell *) malloc(sizeof(struct Cell));
+    }
+    flag = 1;
+}
+
 void shiftDownArray(int pos) {
     for (int i = r_c_num - 1; i >= pos; i--) {
         row_meta[i + 1] = row_meta[i];
@@ -67,20 +80,15 @@ void shiftDownArray(int pos) {
 
 void init(int n) {
     db_idx = 0;
-    int db_len = (MAX_R_C + 1) * (MAX_R_C + 1);
     if (flag != 1) {
-        for (int i = 0; i < db_len; i++) {
-            cell_db[i] = (struct Cell *) malloc(sizeof(struct Cell));
-        }
+        prepare_cell_db();
     }
-    flag = 1;
 
     r_c_num = n;
     cur_row = cur_col = 1;
     for (int i = 1; i <= r_c_num; i++) {
         row_meta[i].row = nullptr;
         row_meta[i].last_col = 0;
-        row_meta[i].enter_end = 0;
     }
     struct Cell *new_cell = createNewCell(0);
     row_meta[cur_row].row = new_cell;
@@ -90,7 +98,7 @@ void init(int n) {
 
 void input_char(char in_char) {
     struct Cell *new_cell = createNewCell(in_char);
-    if (cur_col == 1) {
+    if (cur_col == 1) { // current colomn is a current row first cell
         new_cell->right = cur_cell;
         cur_cell->left = new_cell;
         row_meta[cur_row].row = new_cell;
@@ -98,9 +106,9 @@ void input_char(char in_char) {
     } else {
         new_cell->right = cur_cell;
         new_cell->left = cur_cell->left;
-        struct Cell *ole_left = cur_cell->left;
+        struct Cell *old_left = cur_cell->left;
         cur_cell->left = new_cell;
-        ole_left->right = new_cell;
+        old_left->right = new_cell;
         row_meta[cur_row].last_col++;
     }
 //    cur_cell = new_cell;
@@ -109,24 +117,21 @@ void input_char(char in_char) {
 
 void input_newline() {
     int old_row_last_col = row_meta[cur_row].last_col;
-    int old_row_enter_end = row_meta[cur_row].enter_end;
-    row_meta[cur_row].enter_end = 1;
     row_meta[cur_row].last_col = cur_col - 1;
-    if (cur_cell->left) {
+    if (cur_col == 1) { // current colomn is a current row first cell
+        struct Cell *new_cell = createNewCell(-1);
+        row_meta[cur_row].row = new_cell;
+    } else {
         struct Cell *temp = cur_cell->left;
         struct Cell *new_cell = createNewCell(-1);
         new_cell->left = temp;
         temp->right = new_cell;
-    } else {
-        struct Cell *new_cell = createNewCell(-1);
-        row_meta[cur_row].row = new_cell;
     }
 
     shiftDownArray(cur_row + 1);
     cur_cell->left = nullptr;
     row_meta[cur_row + 1].row = cur_cell;
     row_meta[cur_row + 1].last_col = old_row_last_col - (cur_col - 1);
-    row_meta[cur_row + 1].enter_end = old_row_enter_end;
 
     cur_row++;
     cur_col = 1;
