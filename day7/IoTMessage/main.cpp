@@ -11,7 +11,7 @@
 #define PARSE              100
 #define SET                200
 #define ADD                300
-#define ERASE               400
+#define ERASE              400
 #define GENERATE           500
 
 #define THRESHOLD          0x07FFFFFF
