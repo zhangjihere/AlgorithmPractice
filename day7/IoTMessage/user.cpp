@@ -1,7 +1,18 @@
 //
 // Created by zhangji on 3/20/18.
 //
-#include <malloc.h>
+#ifndef __clang__
+
+// Maybe thie can speed up waste time more than several hundreds miliseconds
+//#pragma GCC optimize ("-Ofast")
+
+# include <malloc.h>
+
+#else
+
+# include <cstdlib>
+
+#endif
 
 #define STRINGTYPE         0x01
 #define SETTYPE            0x02
@@ -21,7 +32,6 @@ typedef struct entity_t {
     char val_val[MAX_VALUE_LENGTH];
 
     entity_t *sub_ent[MAX_VALUE_LENGTH];
-
     entity_t *parent_ent;
 
 } Entity;
@@ -30,13 +40,14 @@ Entity *root;
 
 Entity *createNewEntity(Entity *parent_ent);
 
-int assemble(Entity *ent, char *src, int offset);
+int assemble(Entity *ent, char *in, int offset);
 
-int search_n_set(Entity *ent, char *targetkey, char *newvalue);
+Entity *search_entity(Entity *ent, char *targetkey);
 
 int output(char *out, int offset, const char *src, int n);
 
 int search_n_generate(Entity *ent, char *out, int offset);
+
 
 //the below functions are provided for your convenience
 const char hex[16] = {
@@ -65,7 +76,7 @@ int ztrncpy(char dest[], const char src[], const int offset, const int length) {
     return pos;
 }
 
-int ztrncpy_append(char dest[], const char src[], const int offset, const int length) {
+int ztrncpy_append(char dest[], const int offset, const char src[], const int length) {
     int pos = 0;
     while (pos < length && src[pos] != '\0') {
         dest[offset + pos] = src[pos];
@@ -84,12 +95,12 @@ int ztrlen(const char str[]) {
 
 int equalStr(const char *dest, const char *src) {
     int i = 0;
-    while (src[i] && dest[i]) {
+    while (src[i] != '\0' && dest[i] != '\0') {
         if (src[i] != dest[i])
             return 0;
         i++;
     }
-    if (src[i] == 0 && dest[i] == 0)
+    if (src[i] == '\0' && dest[i] == '\0')
         return 1;
     return 0;
 }
@@ -99,8 +110,8 @@ int chars2int(const char c1, const char c2) {
 }
 
 Entity *createNewEntity(Entity *parent_ent) {
-    Entity *new_entity = (Entity *) malloc(sizeof(Entity));
-    if (new_entity) {
+    auto *new_entity = (Entity *) malloc(sizeof(Entity));
+    if (new_entity != nullptr) {
         new_entity->parent_ent = parent_ent;
     }
     return new_entity;
@@ -114,18 +125,18 @@ void parse(char in[MAX_MESSAGE_LENGTH], int size) { // 100
 
 int assemble(Entity *ent, char *in, int offset) {
     int type = in[offset];
-    if (type == 0x01) {
+    if (type == STRINGTYPE) {
         ent->type = in[offset];
         ent->key_len_high = in[offset + 1];
         ent->key_len_low = in[offset + 2];
         ztrncpy(ent->key_val, in, offset + 1 + 2, ent->key_len_low);
         ent->val_len_high = in[offset + 1 + 2 + ent->key_len_low];
         ent->val_len_low = in[offset + 1 + 2 + ent->key_len_low + 1];
-
         ztrncpy(ent->val_val, in, offset + 1 + 2 + ent->key_len_low + 1 + 1, ent->val_len_low);
+        
         return (offset + 1 + 2 + ent->key_len_low + 1 + 1) + ent->val_len_low;
     }
-    if (type == 0x02) {
+    if (type == SETTYPE) {
         ent->type = in[offset];
         ent->key_len_high = in[offset + 1];
         ent->key_len_low = in[offset + 2];
@@ -145,58 +156,19 @@ int assemble(Entity *ent, char *in, int offset) {
     return 0;
 }
 
-int search_n_set(Entity *ent, char *targetkey, char *newvalue) {
-    int type = ent->type;
-    if (type == 0x01) {
-        if (equalStr(ent->key_val, targetkey)) {
-            int num = ztrncpy(ent->val_val, newvalue, 0, 128);
-            ent->val_len_low = static_cast<char>(num);
-            return 1;
-        }
-    }
-    if (type == 0x02) {
-        for (int i = 0; i < ent->val_len_low; i++) {
-            Entity *sub_ent = ent->sub_ent[i];
-            int rst = search_n_set(sub_ent, targetkey, newvalue);
-            if (rst == 1) {
-                return rst;
-            }
-        }
-    }
-}
-
 //200
 void set(char targetkey[MAX_KEY_LENGTH + 1], char newvalue[MAX_VALUE_LENGTH + 1]) {
-    search_n_set(root, targetkey, newvalue);
-}
-
-Entity *search_entity(Entity *ent, char *targetkey) {
-    int type = ent->type;
-    if (type == 0x01) {
-        if (equalStr(ent->key_val, targetkey)) {
-            return ent;
-        }
-    }
-    if (type == 0x02) {
-        if (equalStr(ent->key_val, targetkey)) {
-            return ent;
-        } else {
-            Entity *sub_ent = nullptr;
-            for (int i = 0; i < ent->val_len_low; i++) {
-                sub_ent = search_entity(ent->sub_ent[i], targetkey);
-                if (sub_ent) {
-                    return sub_ent;
-                }
-            }
-            return sub_ent;
-        }
+    Entity *ent = search_entity(root, targetkey);
+    if (ent != nullptr) {
+        int num = ztrncpy(ent->val_val, newvalue, 0, 128);
+        ent->val_len_low = static_cast<char>(num);
     }
 }
 
 //300
 void add(char parentkey[MAX_KEY_LENGTH + 1], char childkey[MAX_KEY_LENGTH + 1], char childvalue[MAX_VALUE_LENGTH + 1]) {
     Entity *parent_entity = search_entity(root, parentkey);
-    if (parent_entity) {
+    if (parent_entity != nullptr) {
         Entity *new_child_entity = createNewEntity(parent_entity);
         new_child_entity->type = 0x01;
         new_child_entity->key_len_high = 0x00;
@@ -214,28 +186,54 @@ void add(char parentkey[MAX_KEY_LENGTH + 1], char childkey[MAX_KEY_LENGTH + 1], 
 //400
 void erase(char targetkey[MAX_KEY_LENGTH + 1]) {
     Entity *ent = search_entity(root, targetkey);
-    Entity *parent_ent = ent->parent_ent;
-    int pos = 0;
-    for (; pos < parent_ent->val_len_low; pos++) {
-        if (parent_ent->sub_ent[pos] == ent) {
-            parent_ent->sub_ent[pos] = nullptr;
-            break;
+    if (ent != nullptr) {
+        Entity *parent_ent = ent->parent_ent;
+        int pos = 0;
+        for (; pos < parent_ent->val_len_low; pos++) {
+            if (parent_ent->sub_ent[pos] == ent) {
+                parent_ent->sub_ent[pos] = nullptr;
+                break;
+            }
         }
-    }
-    // shift up sub_ent array, complemt delete positon entity 
-    for (; pos < parent_ent->val_len_low - 1; pos++) {
-        parent_ent->sub_ent[pos] = parent_ent->sub_ent[pos + 1];
-    }
-    parent_ent->sub_ent[pos] = nullptr;
+        // shiftup sub_ent array, complemt delete positon entity 
+        for (; pos < parent_ent->val_len_low - 1; pos++) {
+            parent_ent->sub_ent[pos] = parent_ent->sub_ent[pos + 1];
+        }
+        parent_ent->sub_ent[pos] = nullptr;
 
-    parent_ent->val_len_low--;
+        parent_ent->val_len_low--;
+    }
 }
 
-int output(char *out, int offset, const char *src, int n) {
-    for (int i = 0; i < n; i++, offset++) {
-        out[offset] = src[i];
+
+//500
+int generate(char targetkey[MAX_KEY_LENGTH + 1], char out[MAX_MESSAGE_LENGTH]) {
+    Entity *ent = search_entity(root, targetkey);
+    int size = search_n_generate(ent, out, 0);
+    return size;  // return the size of the encoded IoT Message which is stored in the array of out. 
+}
+
+Entity *search_entity(Entity *ent, char *targetkey) {
+    int type = ent->type;
+    if (type == STRINGTYPE) {
+        if (equalStr(ent->key_val, targetkey) == 1) {
+            return ent;
+        }
     }
-    return offset;
+    if (type == SETTYPE) {
+        if (equalStr(ent->key_val, targetkey) == 1) {
+            return ent;
+        } else {
+            Entity *sub_ent = nullptr;
+            for (int i = 0; i < ent->val_len_low; i++) {
+                sub_ent = search_entity(ent->sub_ent[i], targetkey);
+                if (sub_ent != nullptr) {
+                    return sub_ent;
+                }
+            }
+            return sub_ent;
+        }
+    }
 }
 
 int search_n_generate(Entity *ent, char *out, int offset) {
@@ -247,11 +245,11 @@ int search_n_generate(Entity *ent, char *out, int offset) {
     offset = output(out, offset, &ent->val_len_high, 1);
     offset = output(out, offset, &ent->val_len_low, 1);
 
-    if (type == 0x01) {
+    if (type == STRINGTYPE) {
         offset = output(out, offset, ent->val_val, ent->val_len_low);
         return offset;
     }
-    if (type == 0x02) {
+    if (type == SETTYPE) {
         for (int i = 0; i < ent->val_len_low; i++) {
             Entity *sub_ent = ent->sub_ent[i];
             offset = search_n_generate(sub_ent, out, offset);
@@ -260,9 +258,9 @@ int search_n_generate(Entity *ent, char *out, int offset) {
     }
 }
 
-//500
-int generate(char targetkey[MAX_KEY_LENGTH + 1], char out[MAX_MESSAGE_LENGTH]) {
-    Entity *ent = search_entity(root, targetkey);
-    int size = search_n_generate(ent, out, 0);
-    return size;  // return the size of the encoded IoT Message which is stored in the array of out. 
+int output(char *out, int offset, const char *src, int n) {
+    for (int i = 0; i < n; i++, offset++) {
+        out[offset] = src[i];
+    }
+    return offset;
 }
