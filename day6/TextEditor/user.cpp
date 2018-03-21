@@ -11,6 +11,8 @@
 
 #ifndef __clang__
 
+#pragma GCC optimize ("-Ofast")
+
 # include <malloc.h>
 
 #else
