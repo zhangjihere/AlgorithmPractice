@@ -13,4 +13,5 @@ add_subdirectory(day4/VideoEncoding)
 add_subdirectory(day5/FilesystemImplementation)
 add_subdirectory(day6/TextEditor)
 add_subdirectory(day7/IoTMessage)
+add_subdirectory(day8/GalaxyColumns)
 
