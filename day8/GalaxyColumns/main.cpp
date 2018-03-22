@@ -23,8 +23,8 @@ extern int land();
 int main(void) {
     setbuf(stdout, NULL);
 
-    //freopen("sample_input.txt", "r", stdin);
-    freopen("my_input.txt", "r", stdin);
+    freopen("sample_input.txt", "r", stdin);
+    //freopen("my_input.txt", "r", stdin);
 
     int testCnt;
     int totalScore = 0;

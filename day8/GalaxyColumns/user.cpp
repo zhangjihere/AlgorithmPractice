@@ -2,58 +2,97 @@
 // Created by zhangji on 3/21/18.
 //
 
-#include <malloc.h>
+#ifndef __clang__
+
+// Maybe thie can speed up waste time more than several hundreds miliseconds
+#pragma GCC optimize ("-Ofast")
+
+# include <malloc.h>
+
+#else
+
+# include <cstdlib>
+
+#endif
 
 #define BLOCK_SIZE          3
 #define MAX_AREA_W          10
 #define MAX_AREA_H          900
 
-void update_valid_col_span();
-
-void clear_lattices();
-
-void shiftdown_area();
-
-void search_clear_lattice(int search_left, int search_right);
-
-void add_clear_table(int ht, int cl);
-
-int max(int a, int b, int c);
-
+#define N_BLOCK             1
+#define S_BLOCK             2
 
 struct Lattice {
-    int x;
-    int y;
-    int c;
+//    int h;
+//    int col;
+    int s;
 };
 
+//   |_4,1_|_4,2_|_4,3_|__
+//   |_3,1_|_3,2_|_3,3_|__
+// h |_2,1_|_2,2_|_2,3_|__
+//   |_1,1_|_1,2_|_1,3_|__
+//      col
 typedef struct {
-    Lattice lattices[MAX_AREA_H + 1][MAX_AREA_W + 1];
+    Lattice lattices[MAX_AREA_H + 1][MAX_AREA_W + 1];//lattices[h][col]
     int col_h[MAX_AREA_W + 1];
     int valid_left;
     int valid_right;
     int num_stack;
 } Area;
 
+struct Node {
+    int h;
+    int col;
+    int s;
+    Node *next;
+};
+
+int max(int a, int b, int c);
+
+Node *creat_new_node(int h, int col, int s);
+
+void update_valid_col_span();
+
+void normal_search(int search_left, int search_right);
+
+void search_clear_lattice(int search_left, int search_right);
+
+void search_one_symbol_in_all(int s);
+
+void search_chain_symbol_in_all(int search_left, int search_right, int top, int s);
+
+void add_clear_table(int ht, int cl);
+
+void clear_lattices();
+
+void shiftdown_area();
+
+
+void print_lattice();
+
 int case_width;
 int n_block[BLOCK_SIZE];
-int s_block;
+int s_block_type;
 
 Area area;
 int block_col;
 int block_type;
 
-int land_time;
+int clear_time;
 int clear_idx;
 Lattice *clear_table[9000];
 int hash_clear_table[10900];
 
+Node queue;
 
 void init(int width) {
     case_width = width;
     for (int i = 1; i <= MAX_AREA_H; i++) {
         for (int j = 1; j <= MAX_AREA_W; j++) {
-            area.lattices[i][j].c = 0;
+//            area.lattices[i][j].h = i;
+//            area.lattices[i][j].col = j;
+            area.lattices[i][j].s = 0;
         }
     }
     for (int j = 1; j < MAX_AREA_W; j++) {
@@ -63,13 +102,13 @@ void init(int width) {
     area.valid_right = 1;
     area.num_stack = 0;
 
-    land_time++;
-    clear_idx = 0;
+//    clear_time++;
+//    clear_idx = 0;
 }
 
 void newBlock(int block[BLOCK_SIZE]) {
     block_col = 1;
-    block_type = 1;
+    block_type = N_BLOCK;
     n_block[0] = block[0];
     n_block[1] = block[1];
     n_block[2] = block[2];
@@ -79,9 +118,9 @@ void newBlock(int block[BLOCK_SIZE]) {
 // 9
 void specialBlock(int type) {
     block_col = 1;
-    s_block = type;
-    block_type = 2;
-    update_valid_col_span();
+    s_block_type = type;
+    block_type = S_BLOCK;
+//    update_valid_col_span(); // don't care specialBlock col span
 }
 
 // 100
@@ -118,79 +157,107 @@ void move(int distance) {
     if (block_col < 1) {
         block_col = 1;
     }
-    update_valid_col_span();
+    if (block_type == N_BLOCK) { // don't care special_block
+        update_valid_col_span();
+    }
+}
 
+void print_lattice(char *position) {
+    printf("%s,case_width:%d, block_col:%d\n", position, case_width, block_col);
+    for (int h = 8; h >= 1; h--) {
+        for (int col = 1; col <= case_width; col++) {
+            printf("%d ", area.lattices[h][col].s);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 int land() {
-    land_time++;
-    clear_idx = 0;
-    // lay block and add col height, when block is normal(3 lattice) block
-    if (block_type == 1) {
-        int h = area.col_h[block_col];
-        area.lattices[h + 1][block_col].c = n_block[2];
-        area.lattices[h + 2][block_col].c = n_block[1];
-        area.lattices[h + 3][block_col].c = n_block[0];
-        area.col_h[block_col] += BLOCK_SIZE;
+//    print_lattice("Before");
 
-    } else if (block_type == 2) {
-
-    }
-
-    // compute, clear, and rearrange area until stable
-    if (block_type == 1) {// normal compute
-        int search_left = 0;
-        int search_right = 0;
-        if (area.valid_right - area.valid_left == 0) {
-            if (area.valid_left == 1) {
-                search_left = search_right = 2;
-            } else if (area.valid_left == case_width) {
-                search_left = search_right = case_width - 1;
-            } else {
-                search_left = search_right = area.valid_left;
-            }
-        } else if (area.valid_right - area.valid_left == 1) {
-            if (area.valid_left == 1) {
-                search_left = search_right = 2;
-            } else if (area.valid_right == case_width) {
-                search_left = search_right = case_width - 1;
-            } else {
-                search_left = search_right = area.valid_left;
-            }
-        } else if (area.valid_right - area.valid_left > 1) {
-            search_left = area.valid_left + 1;
-            search_right = area.valid_right - 1;
+    // setup search_left & search_right in area
+    int search_left = 0;
+    int search_right = 0;
+    if (area.valid_right - area.valid_left == 0) {
+        if (area.valid_left == 1) {
+            search_left = search_right = 2;
+        } else if (area.valid_left == case_width) {
+            search_left = search_right = case_width - 1;
+        } else {
+            search_left = search_right = area.valid_left;
         }
-        search_clear_lattice(search_left, search_right);
-    } else if (block_type == 2) {
-
+    } else if (area.valid_right - area.valid_left == 1) {
+        if (area.valid_left == 1) {
+            search_left = search_right = 2;
+        } else if (area.valid_right == case_width) {
+            search_left = search_right = case_width - 1;
+        } else {
+            search_left = search_right = area.valid_left;
+        }
+    } else if (area.valid_right - area.valid_left > 1) {
+        search_left = area.valid_left + 1;
+        search_right = area.valid_right - 1;
     }
-    clear_lattices();
-    shiftdown_area();
-    clear_idx = 0;
-    return -1;
+    // compute, clear, and rearrange area until stable
+    // normal search and clear
+    if (block_type == N_BLOCK) {
+        // lay block and add col height, when block is normal(3 lattice) block
+        int h = area.col_h[block_col];
+        area.lattices[h + 1][block_col].s = n_block[2];
+        area.lattices[h + 2][block_col].s = n_block[1];
+        area.lattices[h + 3][block_col].s = n_block[0];
+        area.col_h[block_col] += BLOCK_SIZE;
+        normal_search(search_left, search_right);
+    } else if (block_type == S_BLOCK) {
+        int top = area.col_h[block_col];
+        if (top != 0) {
+            int top_symbol = area.lattices[top][block_col].s;
+            clear_time++;
+            clear_idx = 0;
+            if (s_block_type == 1) {
+                search_one_symbol_in_all(top_symbol);
+            } else if (s_block_type == 2) {
+                search_chain_symbol_in_all(search_left, search_right, top, top_symbol);
+            }
+            clear_lattices();
+            shiftdown_area();
+            normal_search(search_left, search_right);
+        }
+    }
+    int result = 0;
+    for (int col = 1; col <= case_width; col++) {
+        result += area.col_h[col];
+    }
+//    print_lattice("After");
+    return result;
 }
 
 void shiftdown_area() {
     for (int col = 1; col <= area.valid_right; col++) {
-        int delta_col_h = 0;
+        int recompute_col_flag = 0;
         for (int h = 1; h <= area.col_h[col]; h++) {
-            if (area.lattices[h][col].c == 0) {
+            if (area.lattices[h][col].s == 0) {
+                recompute_col_flag = 1;
                 if (h != area.col_h[col]) {
                     for (int i = h + 1; i <= area.col_h[col]; i++) {
-                        if (area.lattices[i][col].c != 0) {
-                            area.lattices[h][col].c = area.lattices[i][col].c;
-                            area.lattices[i][col].c = 0;
-                            delta_col_h++;
+                        if (area.lattices[i][col].s != 0) {
+                            area.lattices[h][col].s = area.lattices[i][col].s;
+                            area.lattices[i][col].s = 0;
                             break;
                         }
                     }
-                } else {
-                    delta_col_h++;
                 }
             }
         }
-        area.col_h[col] -= delta_col_h;
+        if (recompute_col_flag == 1) {
+            for (int h = 1; h < MAX_AREA_H; h++) {
+                if (area.lattices[h][col].s == 0) {
+                    area.col_h[col] = h - 1;
+                    break;
+                }
+            }
+        }
     }
     for (int i = 1; i <= case_width; i++) {
         if (area.col_h[i] != 0) {
@@ -209,71 +276,117 @@ void shiftdown_area() {
 // need optimize
 void clear_lattices() {
     for (int i = 0; i < clear_idx; i++) {
-        int ht = clear_table[i]->x;
-        int cl = clear_table[i]->y;
-        int hash = cl * 1000 + ht;
-        if (hash_clear_table[hash] == land_time) {
-            clear_table[i]->c = 0;
+//        int ht = clear_table[i]->h;
+//        int cl = clear_table[i]->col;
+//        int hash = cl * 1000 + ht;
+//        if (hash_clear_table[hash] == clear_time) {
+        clear_table[i]->s = 0;
+//        }
+    }
+}
+
+void search_one_symbol_in_all(int s) {
+    for (int col = area.valid_left; col <= area.valid_right; col++) {
+        for (int h = 1; h <= area.col_h[col]; h++) {
+            if (area.lattices[h][col].s == s) {
+                add_clear_table(h, col);
+            }
         }
     }
 }
 
-void search_clear_lattice(int search_left, int search_right) {
+// 0 1 2
+// 3   4
+// 5 6 7
+int eight_dir[8][2] = {{1,  -1},{1,  0},{1,  1},
+                       {0,  -1},         {0,  1},
+                       {-1, -1},{-1, 0},{-1, 1}};
 
-    for (int k = search_left; k <= search_right; k++) {
-        int ah = area.col_h[search_left - 1];
-        int bh = area.col_h[search_left];
-        int ch = area.col_h[search_left + 1];
-        int max_h = max(ah, bh, ch);
+Node *creat_new_node(int h, int col, int s) {
+    auto *new_node = (Node *) malloc(sizeof(Node));
+    if (new_node != nullptr) {
+        new_node->next = nullptr;
+        new_node->h = h;
+        new_node->col = col;
+        new_node->s = s;
+    }
+    return new_node;
+}
+
+void search_chain_symbol_in_all(int search_left, int search_right, int top, int s) {
+    queue.next = nullptr;
+    queue.h = top, queue.col = block_col, queue.s = s;
+    Node *head = &queue;
+    Node *tail = &queue;
+    add_clear_table(head->h, head->col);
+    int h, col;
+    int h_d, col_d;
+    while (head != nullptr) {
+        h = head->h, col = head->col;
+        for (auto &t : eight_dir) {
+            h_d = h + t[0], col_d = col + t[1];
+            if (area.lattices[h_d][col_d].s == s) {
+                int hash = col_d * 1000 + h_d;
+                if (hash_clear_table[hash] != clear_time) {
+                    Node *new_node = creat_new_node(h_d, col_d, s);
+                    tail->next = new_node;
+                    add_clear_table(h_d, col_d);
+                    tail = new_node;
+                }
+            }
+        }
+        head = head->next;
+    }
+}
+
+void normal_search(int search_left, int search_right) {
+    do { // normal search and clear
+        clear_time++;
+        clear_idx = 0;
+        search_clear_lattice(search_left, search_right);
+        if (clear_idx != 0) {
+            clear_lattices();
+            shiftdown_area();
+        }
+    } while (clear_idx != 0);
+}
+
+// --+ 1    |             +      \              +      |
+//          | 2           | 4      \   5      /   6    | 7    --+ 8
+//          +      +-- 3  |          +      /          +
+int three_line[8][3][2] = {
+        {{1,  -1}, {1,  0},  {1,  1}},
+        {{1,  1},  {0,  1},  {-1, 1}},
+        {{-1, 1},  {-1, 0},  {-1, -1}},
+        {{-1, -1}, {0,  -1}, {1,  -1}},
+
+        {{1,  -1}, {0,  0},  {-1, 1}},
+        {{-1, -1}, {0,  0},  {1,  1}},
+
+        {{1,  0},  {0,  0},  {-1, 0}},
+        {{0,  -1}, {0,  0},  {0,  1}}
+};
+
+void search_clear_lattice(int search_left, int search_right) {
+    int ah, bh, ch, max_h, s_1, s_2, s_3;
+    for (int col = search_left; col <= search_right; col++) {
+        ah = area.col_h[col - 1];
+        bh = area.col_h[col];
+        ch = area.col_h[col + 1];
+        max_h = max(ah, bh, ch);
+        if (max_h < 3) {
+            max_h = 3;
+        }
         for (int h = 2; h <= max_h - 1; h++) {
-            int c1 = area.lattices[h + 1][k - 1].c;
-            int c2 = area.lattices[h + 1][k].c;
-            int c3 = area.lattices[h + 1][k + 1].c;
-            int c4 = area.lattices[h][k - 1].c;
-            int c5 = area.lattices[h][k].c;
-            int c6 = area.lattices[h][k + 1].c;
-            int c7 = area.lattices[h - 1][k - 1].c;
-            int c8 = area.lattices[h - 1][k].c;
-            int c9 = area.lattices[h - 1][k + 1].c;
-            if (c1 == c2 && c2 == c3) {
-                add_clear_table(h + 1, k - 1);
-                add_clear_table(h + 1, k);
-                add_clear_table(h + 1, k + 1);
-            }
-            if (c3 == c6 && c6 == c9) {
-                add_clear_table(h + 1, k + 1);
-                add_clear_table(h, k + 1);
-                add_clear_table(h - 1, k + 1);
-            }
-            if (c9 == c8 && c8 == c7) {
-                add_clear_table(h - 1, k + 1);
-                add_clear_table(h - 1, k);
-                add_clear_table(h - 1, k - 1);
-            }
-            if (c7 == c4 && c4 == c1) {
-                add_clear_table(h - 1, k - 1);
-                add_clear_table(h, k - 1);
-                add_clear_table(h + 1, k - 1);
-            }
-            if (c1 == c5 && c5 == c9) {
-                add_clear_table(h + 1, k - 1);
-                add_clear_table(h, k);
-                add_clear_table(h - 1, k + 1);
-            }
-            if (c7 == c5 && c5 == c3) {
-                add_clear_table(h - 1, k - 1);
-                add_clear_table(h, k);
-                add_clear_table(h + 1, k + 1);
-            }
-            if (c2 == c5 && c5 == c8) {
-                add_clear_table(h + 1, k);
-                add_clear_table(h, k);
-                add_clear_table(h - 1, k);
-            }
-            if (c4 == c5 && c5 == c6) {
-                add_clear_table(h, k - 1);
-                add_clear_table(h, k);
-                add_clear_table(h, k + 1);
+            for (auto &t : three_line) {
+                s_1 = area.lattices[h + t[0][0]][col + t[0][1]].s;
+                s_2 = area.lattices[h + t[1][0]][col + t[1][1]].s;
+                s_3 = area.lattices[h + t[2][0]][col + t[2][1]].s;
+                if (s_1 == s_2 && s_2 == s_3 && s_1 != 0) {
+                    add_clear_table(h + t[0][0], col + t[0][1]);
+                    add_clear_table(h + t[1][0], col + t[1][1]);
+                    add_clear_table(h + t[2][0], col + t[2][1]);
+                }
             }
         }
     }
@@ -281,8 +394,8 @@ void search_clear_lattice(int search_left, int search_right) {
 
 void add_clear_table(int ht, int cl) {
     int hash = cl * 1000 + ht;
-    if (hash_clear_table[hash] != land_time) {
-        hash_clear_table[hash] = land_time;
+    if (hash_clear_table[hash] != clear_time) {
+        hash_clear_table[hash] = clear_time;
         clear_table[clear_idx] = &area.lattices[ht][cl];
         clear_idx++;
     }
@@ -294,10 +407,9 @@ int max(int a, int b, int c) {
             return a;
         }
         return c;
-    } else {
-        if (b > c) {
-            return b;
-        }
-        return c;
     }
+    if (b > c) {
+        return b;
+    }
+    return c;
 }
