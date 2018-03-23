@@ -70,7 +70,11 @@ int run() {
         }
         int checksum;
         scanf("%d", &checksum);
-        if (ret == checksum) ++score;
+        if (ret == checksum) {
+            ++score;
+        } else {
+            printf("");
+        }
     }
     return score;
 }
