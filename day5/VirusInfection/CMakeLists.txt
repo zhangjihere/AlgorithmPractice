@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(FilesystemImplementation)
+project(VirusInfection)
 
 set(src main.cpp
     user.cpp)
