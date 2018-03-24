@@ -15,3 +15,5 @@ add_subdirectory(day6/TextEditor)
 add_subdirectory(day7/IoTMessage)
 add_subdirectory(day8/GalaxyColumns)
 
+add_subdirectory(20180324/AccurateCalculator)
+
