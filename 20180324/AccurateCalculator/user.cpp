@@ -1,6 +1,16 @@
 #define MAX_N 1000
 
-#include <malloc.h>
+#ifndef __clang__
+
+#pragma GCC optimize ("-Ofast")
+
+# include <malloc.h>
+
+#else
+
+# include <cstdlib>
+
+#endif
 
 extern int my_strlen(const char *a);
 
@@ -20,7 +30,6 @@ void mul(char *r, const char *a, const char *b);
 
 void div(char *r, const char *a, const char *b);
 
-void process(char *rst);
 
 enum {
     NN = 0, ADD = 1, SUB = 2, MUL = 3, DIV = 4
@@ -39,7 +48,7 @@ struct Quation {
 };
 
 struct Quation qua[300];
-int qua_idx;
+//int qua_idx;
 
 struct Quation *root;
 
@@ -62,22 +71,36 @@ Quation *getQuation(int qua_idx, int sig_prv) {
     return &qua[qua_idx];
 }
 
-char up_cur[100];
-char down_cur[100];
+void parse_quation(const char *str, Quation *qua);
 
-char up_ret[100];
-char down_ret[100];
+void make_final_fraction_optimized(Quation *qua);
+
+void make_final_fraction_deprecated(Quation *qua);
+
+void compute(char *rst);
+
+
+char zeros[] = {'1',
+                '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
+                '0'};//1 + 20 + 1
+char temp[100];
+char up_cur[100], down_cur[100];
 char integer_part[100];
-char decimal[100];
-char zeros[21];
+char decimal_part[100];
+char up_ret[100], down_ret[100];
 
 void run(char *rst, const char *str) {
-    qua_idx = 0;
-    int equ_len = my_strlen(str);
-    Quation *cur_qua = getQuation(qua_idx, NN);
-    root = cur_qua;
-    Stat *tail_stat = &root->stat;
-    for (int i = 0, sub_prv; i < equ_len; i++) {
+    root = getQuation(0, NN);
+    parse_quation(str, root);
+    make_final_fraction_optimized(root);
+    compute(rst);
+}
+
+void parse_quation(const char *str, Quation *qua) {
+    Quation *cur_qua = qua;
+    Stat *tail_stat = &(cur_qua->stat);
+    int len = my_strlen(str);
+    for (int i = 0, sub_prv = 0, sub_qua_idx = 0; i < len; i++) {
         if (48 <= str[i] && str[i] <= 57) {// 0~9
             char ct[2];
             ct[0] = str[i];
@@ -89,23 +112,107 @@ void run(char *rst, const char *str) {
             } else {// 47
                 sub_prv = DIV;
             }
-            Stat *new_stat = createNewStat(sub_prv, '\0');
+            Stat *new_stat = createNewStat(sub_prv, "");
             tail_stat->next = new_stat;
             tail_stat = new_stat;
         } else { // ADD + 43 SUB - 45
-            qua_idx++;
+            sub_qua_idx++;
             if (str[i] == 43) {
-                cur_qua->sub_qua = getQuation(qua_idx, ADD);
+                cur_qua->sub_qua = getQuation(sub_qua_idx, ADD);
             } else { // 45
-                cur_qua->sub_qua = getQuation(qua_idx, SUB);
+                cur_qua->sub_qua = getQuation(sub_qua_idx, SUB);
             }
             cur_qua = cur_qua->sub_qua;
-            tail_stat = &cur_qua->stat;
+            tail_stat = &(cur_qua->stat);
         }
     }
+}
 
-    cur_qua = root;
-    Stat *cur_stat = &cur_qua->stat;
+void make_final_fraction_optimized(Quation *qua) {
+    Quation *cur_qua = qua;
+    Stat *cur_stat;
+    int qua_sig_prv, stat_sig_prv;
+    while (cur_qua != nullptr) {
+        qua_sig_prv = cur_qua->sig_prv;
+        cur_stat = &(cur_qua->stat);
+        while (cur_stat != nullptr) {
+            stat_sig_prv = cur_stat->sig_prv;
+            if (stat_sig_prv == MUL) {
+                mul(up_cur, up_cur, cur_stat->n);
+            } else if (cur_stat->sig_prv == DIV) {
+                mul(down_cur, down_cur, cur_stat->n);
+            } else {
+                my_strcpy(up_cur, cur_stat->n);
+                my_strcpy(down_cur, "1");
+            }
+            cur_stat = cur_stat->next;
+        }
+        if (qua_sig_prv == ADD) {
+            mul(up_ret, up_ret, down_cur);
+            mul(up_cur, up_cur, down_ret);
+            add(up_ret, up_ret, up_cur);
+            mul(down_ret, down_ret, down_cur);
+        } else if (qua_sig_prv == SUB) {
+            mul(up_ret, up_ret, down_cur);
+            mul(up_cur, up_cur, down_ret);
+            sub(up_ret, up_ret, up_cur);
+            mul(down_ret, down_ret, down_cur);
+        } else {
+            my_strcpy(up_ret, up_cur);
+            my_strcpy(down_ret, down_cur);
+        }
+        cur_qua = cur_qua->sub_qua;
+    }
+}
+
+void compute(char *rst) {
+    // get decimal dot position index
+    int dot_pos = 0;
+    for (; dot_pos < MAX_N && up_ret[dot_pos] != '\0'; dot_pos++) {
+    }
+    // get result's integer part
+    div(integer_part, up_ret, down_ret);
+    int int_len = 0;
+    for (; int_len < MAX_N && integer_part[int_len] != '\0'; int_len++) {
+    }
+    // up_ret substract integer_part*down_ret, and remains result's decimal dividend
+    mul(temp, down_ret, integer_part);
+    sub(up_ret, up_ret, temp);
+    // up_ret multiple 10^(20+1)
+    mul(up_ret, up_ret, zeros);
+    // check the available
+    div(decimal_part, up_ret, down_ret);
+    // check decimal_part[] index 19's available number 0 and 20 index is not 0, remain index 19 available number 0
+    if (decimal_part[19] == '0' && decimal_part[20] != '0') {
+        decimal_part[20] = '\0';
+    } else {
+        int z = (20) - 1;
+        for (; z >= 0 && decimal_part[z] == '0'; z--) {
+        }
+        decimal_part[z + 1] = '\0';
+    }
+    // combine integer_part, decimal dot and decimal_part to rst
+    int i = 0;
+    for (; i < int_len + 1 + (20 + 1); i++) {
+        if (i < int_len) {
+            rst[i] = integer_part[i];
+        } else if (i == int_len) {
+            if (decimal_part[0] != '0' && decimal_part[1] != '\0') {
+                rst[i] = '.';
+            } else {
+                rst[i] = '\0';
+                break;
+            }
+        } else {
+            rst[i] = decimal_part[(i - int_len) - 1];
+        }
+    }
+//    rst[i] = '\0';
+}
+
+void make_final_fraction_deprecated(Quation *qua) {
+    Quation *cur_qua = qua;
+    Stat *cur_stat = &(cur_qua->stat);
     my_strcpy(up_ret, "1");
     my_strcpy(down_ret, "1");
     int stat_sig_prv;
@@ -139,59 +246,10 @@ void run(char *rst, const char *str) {
             my_strcpy(down_ret, down_cur);
         }
         cur_qua = cur_qua->sub_qua;
-        cur_stat = &cur_qua->stat;
+        cur_stat = &(cur_qua->stat);
     } while (cur_qua != nullptr);
-    process(rst);
 }
 
-void process(char *rst) {
-    int dot_pos = 0;
-    for (; dot_pos < MAX_N && up_ret[dot_pos] != '\0'; dot_pos++) {
-    }
-
-    div(integer_part, up_ret, down_ret);
-    int int_len = 0;
-    for (; int_len < MAX_N && integer_part[int_len] != '\0'; int_len++) {
-    }
-
-    mul(decimal, down_ret, integer_part);
-    sub(up_ret, up_ret, decimal);
-
-    zeros[0] = '1';
-    int k = 1;
-    for (; k <= 20 + 1; k++) {
-        zeros[k] = '0';
-    }
-    zeros[k] = '\0';
-    mul(up_ret, up_ret, zeros);
-
-    div(decimal, up_ret, down_ret);
-    if (!(decimal[18] != '0'
-          && decimal[19] == '0'
-          && decimal[20] != '0')) { // check decimal[] idx 19 is available number 0, shouldn't be clear. 
-        int z = (20) - 1;
-        for (; z >= 0 && decimal[z] == '0'; z--) {
-        }
-        decimal[z + 1] = '\0';
-    }
-
-    int i = 0;
-    for (; i < int_len + 1 + (20 + 1); i++) {
-        if (i < int_len) {
-            rst[i] = integer_part[i];
-        } else if (i == int_len) {
-            if (decimal[0] != '0') {
-                rst[i] = '.';
-            } else {
-                rst[i] = '\0';
-                break;
-            }
-        } else {
-            rst[i] = decimal[(i - int_len) - 1];
-        }
-    }
-    rst[i] = '\0';
-}
 
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
