@@ -2,7 +2,17 @@
 // Created by zhangji on 3/16/18.
 //
 
-# include<malloc.h>
+#ifndef __clang__
+
+#pragma GCC optimize ("-Ofast")
+
+# include <malloc.h>
+
+#else
+
+# include <cstdlib>
+
+#endif
 
 # define MAX_NODE       10000
 enum {

@@ -12,6 +12,7 @@
 #else
 
 # include <cstdlib>
+#include <cstdio>
 
 #endif
 
