@@ -1,4 +1,4 @@
-#define MAX_N 1000
+#define MAX_N 1001
 
 #ifndef __clang__
 
@@ -30,14 +30,14 @@ void mul(char *r, const char *a, const char *b);
 
 void div(char *r, const char *a, const char *b);
 
-
+// computation signal
 enum {
     NN = 0, ADD = 1, SUB = 2, MUL = 3, DIV = 4
 };
 
 struct Stat {
     int sig_prv;
-    char n[500];
+    char n[MAX_N];
     Stat *next;
 };
 
@@ -47,7 +47,7 @@ struct Quation {
     Stat stat;
 };
 
-struct Quation qua[300];
+struct Quation qua[MAX_N];
 //int qua_idx;
 
 struct Quation *root;
@@ -79,15 +79,14 @@ void make_final_fraction_deprecated(Quation *qua);
 
 void compute(char *rst);
 
-
 char zeros[] = {'1',
                 '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
                 '0'};//1 + 20 + 1
-char temp[100];
-char up_cur[100], down_cur[100];
-char integer_part[100];
-char decimal_part[100];
-char up_ret[100], down_ret[100];
+char temp[MAX_N];
+char up_cur[MAX_N], down_cur[MAX_N];
+char integer_part[MAX_N];
+char decimal_part[MAX_N];
+char up_ret[MAX_N], down_ret[MAX_N];
 
 void run(char *rst, const char *str) {
     root = getQuation(0, NN);
@@ -166,18 +165,22 @@ void make_final_fraction_optimized(Quation *qua) {
 }
 
 void compute(char *rst) {
-    // get decimal dot position index
-    int dot_pos = 0;
-    for (; dot_pos < MAX_N && up_ret[dot_pos] != '\0'; dot_pos++) {
-    }
     // get result's integer part
     div(integer_part, up_ret, down_ret);
     int int_len = 0;
     for (; int_len < MAX_N && integer_part[int_len] != '\0'; int_len++) {
     }
+    // get decimal dot position index
+    int dot_pos = 0;
+    for (; dot_pos < MAX_N && up_ret[dot_pos] != '\0'; dot_pos++) {
+    }
     // up_ret substract integer_part*down_ret, and remains result's decimal dividend
     mul(temp, down_ret, integer_part);
     sub(up_ret, up_ret, temp);
+    // get 0 numbers after decimal dot
+    div(temp, down_ret, up_ret);
+    int diff = my_strlen(temp);
+    int zero_num_aft_dot = (diff > 1) ? diff - 1 : 0;
     // up_ret multiple 10^(20+1)
     mul(up_ret, up_ret, zeros);
     // check the available
@@ -193,21 +196,23 @@ void compute(char *rst) {
     }
     // combine integer_part, decimal dot and decimal_part to rst
     int i = 0;
-    for (; i < int_len + 1 + (20 + 1); i++) {
+    for (; i < int_len + 1 + (20); i++) {
         if (i < int_len) {
             rst[i] = integer_part[i];
-        } else if (i == int_len) {
+        } else if (i == int_len) { // check decimal dot
             if (decimal_part[0] != '0' && decimal_part[1] != '\0') {
                 rst[i] = '.';
             } else {
                 rst[i] = '\0';
                 break;
             }
+        } else if (i < int_len + 1 + zero_num_aft_dot) { // check zero after decimal dot
+            rst[i] = '0';
         } else {
-            rst[i] = decimal_part[(i - int_len) - 1];
+            rst[i] = decimal_part[i - int_len - 1 - zero_num_aft_dot];
         }
     }
-//    rst[i] = '\0';
+    rst[i] = '\0';
 }
 
 void make_final_fraction_deprecated(Quation *qua) {
