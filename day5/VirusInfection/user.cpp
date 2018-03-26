@@ -70,7 +70,7 @@ Node *get_node(int id, int fileSize, Node *parent) {
     node->file_size = fileSize;
     node->total_f_cnt = 0;
     node->total_f_size = 0;
-    node->origin_f_size = 0;
+    node->origin_f_size = fileSize;
     node->parent = parent;
     node->prev_bro = nullptr;
     node->next_bro = nullptr;
@@ -189,14 +189,45 @@ int move(int id, int pid) {
     update_file_info_add(src_node);
 }
 
+void inject_node(Node *node, int inject_size) {
+    if (node->type == FL) {
+        node->file_size += inject_size;
+        Node *p_node = node->parent;
+        while (p_node != nullptr) {
+            p_node->total_f_size += inject_size;
+            p_node = p_node->parent;
+        }
+    }
+    if (node->next_bro != nullptr) {
+        inject_node(node->next_bro, inject_size);
+    }
+    if (node->first_chd != nullptr) {
+        inject_node(node->first_chd, inject_size);
+    }
+}
+
 //3
 int infect(int id) {
-    int total_f_size = root.total_f_size;
-    int total_f_cnt = root.total_f_cnt;
-    int infect_size = total_f_size / total_f_cnt;
+    int infect_size = root.total_f_size / root.total_f_cnt;
     Node *node = find_node(&root, &id);
-    if (node->type == FL) {
+    inject_node(node, infect_size);
+}
 
+void recover_node(Node *node) {
+    if (node->type == FL) {
+        int recover_size = node->file_size - node->origin_f_size;
+        node->file_size -= recover_size;
+        Node *p_node = node->parent;
+        while (p_node != nullptr) {
+            p_node->total_f_size -= recover_size;
+            p_node = p_node->parent;
+        }
+    }
+    if (node->next_bro != nullptr) {
+        recover_node(node->next_bro);
+    }
+    if (node->first_chd != nullptr) {
+        recover_node(node->first_chd);
     }
 }
 
