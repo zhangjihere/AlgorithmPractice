@@ -29,6 +29,8 @@ struct Node {
     int total_f_cnt;
     int total_f_size;
 
+    int origin_f_size;
+
     Node *parent;
     Node *prev_bro;
     Node *next_bro;
@@ -68,6 +70,7 @@ Node *get_node(int id, int fileSize, Node *parent) {
     node->file_size = fileSize;
     node->total_f_cnt = 0;
     node->total_f_size = 0;
+    node->origin_f_size = 0;
     node->parent = parent;
     node->prev_bro = nullptr;
     node->next_bro = nullptr;
@@ -104,7 +107,8 @@ Node *find_node(Node *_node, int *pid) {
 
 
 void *update_file_info_add(Node *node) {
-    int tf_size, tf_cnt;
+    int tf_size, tf_cnt, origin_size;
+    origin_size = node->origin_f_size;
     if (node->type == DR) {
         tf_size = node->total_f_size;
         tf_cnt = node->total_f_cnt;
@@ -116,23 +120,26 @@ void *update_file_info_add(Node *node) {
     while (p_node != nullptr) {
         p_node->total_f_cnt += tf_cnt;
         p_node->total_f_size += tf_size;
+        p_node->origin_f_size += origin_size;
         p_node = p_node->parent;
     }
 }
 
 void *update_file_info_substract(Node *node) {
-    int tf_size, tf_cnt;
+    int tf_size, tf_cnt, origin_f_size;
+    origin_f_size = node->origin_f_size;
     if (node->type == DR) {
-        tf_size = -node->total_f_size;
-        tf_cnt = -node->total_f_cnt;
+        tf_size = node->total_f_size;
+        tf_cnt = node->total_f_cnt;
     } else { // node->type == FL
-        tf_size = -node->file_size;
-        tf_cnt = -1;
+        tf_size = node->file_size;
+        tf_cnt = 1;
     }
     Node *p_node = node->parent;
     while (p_node != nullptr) {
-        p_node->total_f_cnt += tf_cnt;
-        p_node->total_f_size += tf_size;
+        p_node->total_f_cnt -= tf_cnt;
+        p_node->total_f_size -= tf_size;
+        p_node->origin_f_size -= origin_f_size;
         p_node = p_node->parent;
     }
 }
@@ -189,7 +196,7 @@ int infect(int id) {
     int infect_size = total_f_size / total_f_cnt;
     Node *node = find_node(&root, &id);
     if (node->type == FL) {
-        
+
     }
 }
 
