@@ -85,6 +85,7 @@ char zeros[] = {'1',
 char temp[MAX_N];
 char up_cur[MAX_N], down_cur[MAX_N];
 char integer_part[MAX_N];
+char integer_part_abs[MAX_N] = "";// integer_part's absolutive value
 char decimal_part[MAX_N];
 char up_ret[MAX_N], down_ret[MAX_N];
 
@@ -166,16 +167,28 @@ void make_final_fraction_optimized(Quation *qua) {
 
 void compute(char *rst) {
     // get result's integer part
-    div(integer_part, up_ret, down_ret);
-    int int_len = 0;
-    for (; int_len < MAX_N && integer_part[int_len] != '\0'; int_len++) {
-    }
-    // get decimal dot position index
-    int dot_pos = 0;
-    for (; dot_pos < MAX_N && up_ret[dot_pos] != '\0'; dot_pos++) {
+    int int_len = 0;// before decimal dot integer_part len and it also is the dot_position
+    if (up_ret[0] == '-') {// up_ret is negative
+        mul(up_ret, up_ret, "-1");
+        div(integer_part_abs, up_ret, down_ret);
+        int_len = my_strlen(integer_part_abs) + 1;// 1 represent '-' signal
+        if (integer_part_abs[0] == '0') {//up_ret absolutive value less than down_ret
+            integer_part[0] = '-';
+            integer_part[1] = '0';
+            integer_part[2] = '\0';
+        } else {
+            for (int i = int_len; i > 0; i--) {
+                integer_part[i] = integer_part_abs[i - 1];
+            }
+            integer_part[0] = '-';
+        }
+    } else {
+        div(integer_part_abs, up_ret, down_ret);
+        int_len = my_strlen(integer_part_abs);
+        my_strcpy(integer_part, integer_part_abs);
     }
     // up_ret substract integer_part*down_ret, and remains result's decimal dividend
-    mul(temp, down_ret, integer_part);
+    mul(temp, down_ret, integer_part_abs);
     sub(up_ret, up_ret, temp);
     // get 0 numbers after decimal dot
     div(temp, down_ret, up_ret);
