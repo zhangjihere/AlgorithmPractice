@@ -4,7 +4,7 @@
 
 #ifndef __clang__
 
-#pragma GCC optimize ("-Ofast")
+//#pragma GCC optimize ("-Ofast")
 
 # include <malloc.h>
 
@@ -60,7 +60,9 @@ int make_hash(int id) {
 }
 
 Node *get_node(int id, int fileSize, Node *parent) {
-    Node *node = &node_pool[make_hash(id)];
+//    Node *node = &node_pool[make_hash(id)];
+    auto node = (Node *) malloc(sizeof(Node));
+
     node->id = id;
     if (fileSize == 0) {
         node->type = DR;
@@ -83,21 +85,25 @@ void init(void) {
     root.id = MAX_NODE;
     root.type = DR;
     root.first_chd = nullptr;
+    root.file_size = 0;
+    root.total_f_size = 0;
+    root.total_f_cnt = 0;
+    root.origin_f_size = 0;
 }
 
-Node *find_node(Node *_node, int *pid) {
-    if (*pid == _node->id) {
+Node *find_node(Node *_node, int *id) {
+    if (*id == _node->id) {
         return _node;
     }
     Node *ret_node;
-    if (_node->next_bro != nullptr && _node->type == DR) {
-        ret_node = find_node(_node->next_bro, pid);
+    if (_node->next_bro != nullptr) {
+        ret_node = find_node(_node->next_bro, id);
         if (ret_node != nullptr) {
             return ret_node;
         }
     }
-    if (_node->first_chd != nullptr && _node->type == DR) {
-        ret_node = find_node(_node->first_chd, pid);
+    if (_node->first_chd != nullptr) {
+        ret_node = find_node(_node->first_chd, id);
         if (ret_node != nullptr) {
             return ret_node;
         }
@@ -107,8 +113,8 @@ Node *find_node(Node *_node, int *pid) {
 
 
 void *update_file_info_add(Node *node) {
-    int tf_size, tf_cnt, origin_size;
-    origin_size = node->origin_f_size;
+    int tf_size, tf_cnt, origin_f_size;
+    origin_f_size = node->origin_f_size;
     if (node->type == DR) {
         tf_size = node->total_f_size;
         tf_cnt = node->total_f_cnt;
@@ -120,7 +126,7 @@ void *update_file_info_add(Node *node) {
     while (p_node != nullptr) {
         p_node->total_f_cnt += tf_cnt;
         p_node->total_f_size += tf_size;
-        p_node->origin_f_size += origin_size;
+        p_node->origin_f_size += origin_f_size;
         p_node = p_node->parent;
     }
 }
@@ -169,24 +175,35 @@ int move(int id, int pid) {
     Node *src_node = find_node(&root, &id);
     // cut down
     Node *src_parent_n = src_node->parent;
-    Node *src_next_bro = src_node->next_bro;
     Node *src_prev_bro = src_node->prev_bro;
+    Node *src_next_bro = src_node->next_bro;
     if (src_prev_bro == nullptr) { // src_node is fisrt child
         src_parent_n->first_chd = src_next_bro;
+        if (src_next_bro != nullptr) {
+            src_next_bro->prev_bro = nullptr;
+        }
+    } else if (src_next_bro == nullptr) {
+        src_prev_bro->next_bro = src_next_bro;
     } else {
         src_prev_bro->next_bro = src_next_bro;
         src_next_bro->prev_bro = src_prev_bro;
     }
+    src_node->prev_bro = nullptr;
+    src_node->next_bro = nullptr;
     update_file_info_substract(src_node);
+
     // move to 
     Node *tgt_node = find_node(&root, &pid);
     Node *old_first_child = tgt_node->first_chd;
     tgt_node->first_chd = src_node;
+    src_node->parent = tgt_node;
+    src_node->prev_bro = nullptr;
     if (old_first_child != nullptr) {
         src_node->next_bro = old_first_child;
         old_first_child->prev_bro = src_node;
     }
     update_file_info_add(src_node);
+    return tgt_node->total_f_size;
 }
 
 void inject_node(Node *node, int inject_size) {
@@ -208,9 +225,17 @@ void inject_node(Node *node, int inject_size) {
 
 //3
 int infect(int id) {
-    int infect_size = root.total_f_size / root.total_f_cnt;
+    int infect_size = root.total_f_cnt != 0 ? root.total_f_size / root.total_f_cnt : 0;
     Node *node = find_node(&root, &id);
-    inject_node(node, infect_size);
+    if (node->type == FL) {
+        inject_node(node, infect_size);
+        return node->file_size;
+    } else {
+        if (node->first_chd != nullptr) {
+            inject_node(node->first_chd, infect_size);
+        }
+        return node->total_f_size;
+    }
 }
 
 void recover_node(Node *node) {
@@ -233,7 +258,16 @@ void recover_node(Node *node) {
 
 //4
 int recover(int id) {
-
+    Node *node = find_node(&root, &id);
+    if (node->type == FL) {
+        recover_node(node);
+        return node->file_size;
+    } else {
+        if (node->first_chd != nullptr) {
+            recover_node(node->first_chd);
+        }
+        return node->total_f_size;
+    }
 }
 
 //5
@@ -241,13 +275,26 @@ int remove(int id) {
     Node *src_node = find_node(&root, &id);
     // cut down
     Node *src_parent_n = src_node->parent;
-    Node *src_next_bro = src_node->next_bro;
     Node *src_prev_bro = src_node->prev_bro;
+    Node *src_next_bro = src_node->next_bro;
     if (src_prev_bro == nullptr) { // src_node is fisrt child
         src_parent_n->first_chd = src_next_bro;
+        if (src_next_bro != nullptr) {
+            src_next_bro->prev_bro = nullptr;
+        }
+    } else if (src_next_bro == nullptr) {
+        src_prev_bro->next_bro = src_next_bro;
     } else {
         src_prev_bro->next_bro = src_next_bro;
         src_next_bro->prev_bro = src_prev_bro;
     }
+    src_node->prev_bro = nullptr;
+    src_node->next_bro = nullptr;
+
     update_file_info_substract(src_node);
+    if (src_node->type == DR) {
+        return src_node->total_f_size;
+    } else {
+        return src_node->file_size;
+    }
 }

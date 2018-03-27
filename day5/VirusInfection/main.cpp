@@ -73,7 +73,7 @@ int run() {
         if (ret == checksum) {
             ++score;
         } else {
-            printf("");
+            printf("er");
         }
     }
     return score;
