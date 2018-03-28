@@ -19,6 +19,14 @@ enum {
     DR = 1,
     FL = 2
 };
+enum {
+    ADD = 1,
+    SUB = -1
+};
+enum {
+    INFECT = 1,
+    RECOVER = -1
+};
 
 
 struct Node {
@@ -37,16 +45,22 @@ struct Node {
     Node *first_chd;
 };
 
+Node *remove_node(int &id);
+
+void connect_to_new_parent(Node *src_node, Node *tgt_node);
+
+void file_change_until_parents(Node *node, int change_size, int change_type);
+
 Node root;
-Node *infect_node[MAX_NODE];
+//Node *infect_node[MAX_NODE];
 
 int case_time;
 int hash_table[MAX_NODE];
 Node node_pool[MAX_NODE];
-int orig_size_poo[MAX_NODE];
+//int orig_size_poo[MAX_NODE];
 
 int make_hash(int id) {
-    int hash = id / 10000;
+    int hash = id / MAX_NODE;
     do {
         if (hash == MAX_NODE) {
             hash = 0;
@@ -59,10 +73,9 @@ int make_hash(int id) {
     } while (hash > 0);
 }
 
-Node *get_node(int id, int fileSize, Node *parent) {
-//    Node *node = &node_pool[make_hash(id)];
-    auto node = (Node *) malloc(sizeof(Node));
-
+Node *get_node(int id, int fileSize) {
+    Node *node = &node_pool[make_hash(id)];
+//    auto node = (Node *) malloc(sizeof(Node));
     node->id = id;
     if (fileSize == 0) {
         node->type = DR;
@@ -73,7 +86,7 @@ Node *get_node(int id, int fileSize, Node *parent) {
     node->total_f_cnt = 0;
     node->total_f_size = 0;
     node->origin_f_size = fileSize;
-    node->parent = parent;
+    node->parent = nullptr;
     node->prev_bro = nullptr;
     node->next_bro = nullptr;
     node->first_chd = nullptr;
@@ -111,16 +124,15 @@ Node *find_node(Node *_node, int *id) {
     return nullptr;
 }
 
-
-void *update_file_info_add(Node *node) {
+void *update_file_info(Node *node, int symbol) {
     int tf_size, tf_cnt, origin_f_size;
     origin_f_size = node->origin_f_size;
     if (node->type == DR) {
-        tf_size = node->total_f_size;
-        tf_cnt = node->total_f_cnt;
+        tf_size = symbol * node->total_f_size;
+        tf_cnt = symbol * node->total_f_cnt;
     } else { // node->type == FL
-        tf_size = node->file_size;
-        tf_cnt = 1;
+        tf_size = symbol * node->file_size;
+        tf_cnt = symbol * 1;
     }
     Node *p_node = node->parent;
     while (p_node != nullptr) {
@@ -131,69 +143,26 @@ void *update_file_info_add(Node *node) {
     }
 }
 
-void *update_file_info_substract(Node *node) {
-    int tf_size, tf_cnt, origin_f_size;
-    origin_f_size = node->origin_f_size;
-    if (node->type == DR) {
-        tf_size = node->total_f_size;
-        tf_cnt = node->total_f_cnt;
-    } else { // node->type == FL
-        tf_size = node->file_size;
-        tf_cnt = 1;
-    }
-    Node *p_node = node->parent;
-    while (p_node != nullptr) {
-        p_node->total_f_cnt -= tf_cnt;
-        p_node->total_f_size -= tf_size;
-        p_node->origin_f_size -= origin_f_size;
-        p_node = p_node->parent;
-    }
-}
-
 // 1
 int add(int id, int pid, int fileSize) {
-    // find pid Node
     Node *p_node = find_node(&root, &pid);
     if (p_node == nullptr) {
         return 0;
     }
-    // apply a available node
-    Node *new_node = get_node(id, fileSize, p_node);
-    Node *old_first_child = p_node->first_chd;
-    p_node->first_chd = new_node;
-    if (old_first_child != nullptr) {
-        new_node->next_bro = old_first_child;
-        old_first_child->prev_bro = new_node;
-    }
-    //compute total_f_size & total_f_cnt
-    update_file_info_add(new_node);
+    Node *new_node = get_node(id, fileSize);
+    connect_to_new_parent(new_node, p_node);
     return p_node->total_f_size;
 }
 
 // 2
 int move(int id, int pid) {
-    Node *src_node = find_node(&root, &id);
-    // cut down
-    Node *src_parent_n = src_node->parent;
-    Node *src_prev_bro = src_node->prev_bro;
-    Node *src_next_bro = src_node->next_bro;
-    if (src_prev_bro == nullptr) { // src_node is fisrt child
-        src_parent_n->first_chd = src_next_bro;
-        if (src_next_bro != nullptr) {
-            src_next_bro->prev_bro = nullptr;
-        }
-    } else if (src_next_bro == nullptr) {
-        src_prev_bro->next_bro = src_next_bro;
-    } else {
-        src_prev_bro->next_bro = src_next_bro;
-        src_next_bro->prev_bro = src_prev_bro;
-    }
-    src_node->prev_bro = nullptr;
-    src_node->next_bro = nullptr;
-    update_file_info_substract(src_node);
-
-    // move to 
+    Node *node = remove_node(id);
     Node *tgt_node = find_node(&root, &pid);
+    connect_to_new_parent(node, tgt_node);
+    return tgt_node->total_f_size;
+}
+
+void connect_to_new_parent(Node *src_node, Node *tgt_node) {
     Node *old_first_child = tgt_node->first_chd;
     tgt_node->first_chd = src_node;
     src_node->parent = tgt_node;
@@ -202,24 +171,19 @@ int move(int id, int pid) {
         src_node->next_bro = old_first_child;
         old_first_child->prev_bro = src_node;
     }
-    update_file_info_add(src_node);
-    return tgt_node->total_f_size;
+    update_file_info(src_node, ADD);
 }
 
-void inject_node(Node *node, int inject_size) {
+// node should be child node
+void inject_node(Node *node, int infect_size) {
     if (node->type == FL) {
-        node->file_size += inject_size;
-        Node *p_node = node->parent;
-        while (p_node != nullptr) {
-            p_node->total_f_size += inject_size;
-            p_node = p_node->parent;
-        }
+        file_change_until_parents(node, infect_size, INFECT);
     }
     if (node->next_bro != nullptr) {
-        inject_node(node->next_bro, inject_size);
+        inject_node(node->next_bro, infect_size);
     }
     if (node->first_chd != nullptr) {
-        inject_node(node->first_chd, inject_size);
+        inject_node(node->first_chd, infect_size);
     }
 }
 
@@ -229,29 +193,27 @@ int infect(int id) {
     Node *node = find_node(&root, &id);
     if (infect_size != 0) {
         if (node->type == FL) {
-            inject_node(node, infect_size);
+            file_change_until_parents(node, infect_size, INFECT);
         } else {
             if (node->first_chd != nullptr) {
                 inject_node(node->first_chd, infect_size);
             }
         }
-    }
-    if (node->type == FL) {
-        return node->file_size;
+        if (node->type == FL) {
+            return node->file_size;
+        } else {
+            return node->total_f_size;
+        }
     } else {
-        return node->total_f_size;
+        return 0;
     }
 }
 
+// node should be child node
 void recover_node(Node *node) {
     if (node->type == FL) {
         int recover_size = node->file_size - node->origin_f_size;
-        node->file_size -= recover_size;
-        Node *p_node = node->parent;
-        while (p_node != nullptr) {
-            p_node->total_f_size -= recover_size;
-            p_node = p_node->parent;
-        }
+        file_change_until_parents(node, recover_size, RECOVER);
     }
     if (node->next_bro != nullptr) {
         recover_node(node->next_bro);
@@ -266,7 +228,8 @@ int recover(int id) {
     Node *node = find_node(&root, &id);
     if (node->type == FL) {
         if (node->origin_f_size != node->file_size) {
-            recover_node(node);
+            int recover_size = node->file_size - node->origin_f_size;
+            file_change_until_parents(node, recover_size, RECOVER);
         }
     } else {
         if (node->origin_f_size != node->total_f_size) {
@@ -282,10 +245,27 @@ int recover(int id) {
     }
 }
 
+void file_change_until_parents(Node *node, int change_size, int change_type) {
+    node->file_size += change_type * change_size;
+    Node *p_node = node->parent;
+    while (p_node != nullptr) {
+        p_node->total_f_size += change_type * change_size;
+        p_node = p_node->parent;
+    }
+}
+
 //5
 int remove(int id) {
+    Node *src_node = remove_node(id);
+    if (src_node->type == DR) {
+        return src_node->total_f_size;
+    } else {
+        return src_node->file_size;
+    }
+}
+
+Node *remove_node(int &id) {
     Node *src_node = find_node(&root, &id);
-    // cut down
     Node *src_parent_n = src_node->parent;
     Node *src_prev_bro = src_node->prev_bro;
     Node *src_next_bro = src_node->next_bro;
@@ -302,11 +282,6 @@ int remove(int id) {
     }
     src_node->prev_bro = nullptr;
     src_node->next_bro = nullptr;
-
-    update_file_info_substract(src_node);
-    if (src_node->type == DR) {
-        return src_node->total_f_size;
-    } else {
-        return src_node->file_size;
-    }
+    update_file_info(src_node, SUB);
+    return src_node;
 }
