@@ -45,19 +45,30 @@ struct Node {
     Node *first_chd;
 };
 
-Node *remove_node(int &id);
+
+int make_hash(int id);
+
+Node *get_node(int id, int fileSize);
+
+Node *find_node(Node *_node, int *id);
+
+void *update_file_info(Node *node, int symbol);
 
 void connect_to_new_parent(Node *src_node, Node *tgt_node);
 
+void inject_node(Node *node, int infect_size);
+
+void recover_node(Node *node);
+
 void file_change_until_parents(Node *node, int change_size, int change_type);
 
-Node root;
-//Node *infect_node[MAX_NODE];
+Node *remove_node(int &id);
 
+
+Node root;
 int case_time;
 int hash_table[MAX_NODE];
 Node node_pool[MAX_NODE];
-//int orig_size_poo[MAX_NODE];
 
 int make_hash(int id) {
     int hash = id / MAX_NODE;
