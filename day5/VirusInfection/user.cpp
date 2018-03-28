@@ -227,13 +227,18 @@ void inject_node(Node *node, int inject_size) {
 int infect(int id) {
     int infect_size = root.total_f_cnt != 0 ? root.total_f_size / root.total_f_cnt : 0;
     Node *node = find_node(&root, &id);
+    if (infect_size != 0) {
+        if (node->type == FL) {
+            inject_node(node, infect_size);
+        } else {
+            if (node->first_chd != nullptr) {
+                inject_node(node->first_chd, infect_size);
+            }
+        }
+    }
     if (node->type == FL) {
-        inject_node(node, infect_size);
         return node->file_size;
     } else {
-        if (node->first_chd != nullptr) {
-            inject_node(node->first_chd, infect_size);
-        }
         return node->total_f_size;
     }
 }
@@ -260,12 +265,19 @@ void recover_node(Node *node) {
 int recover(int id) {
     Node *node = find_node(&root, &id);
     if (node->type == FL) {
-        recover_node(node);
+        if (node->origin_f_size != node->file_size) {
+            recover_node(node);
+        }
+    } else {
+        if (node->origin_f_size != node->total_f_size) {
+            if (node->first_chd != nullptr) {
+                recover_node(node->first_chd);
+            }
+        }
+    }
+    if (node->type == FL) {
         return node->file_size;
     } else {
-        if (node->first_chd != nullptr) {
-            recover_node(node->first_chd);
-        }
         return node->total_f_size;
     }
 }
