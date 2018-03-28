@@ -32,7 +32,7 @@ extern void AddDB(SInfo info);
 
 extern int SearchBestCase(SInfo info);
 
-void MyStrCpy(char *src, char *dst) {
+void mystr_cpy(char *src, char *dst) {
     int i = 0;
     while (src[i]) {
         dst[i] = src[i];
