@@ -4,6 +4,8 @@
 
 #pragma GCC optimize ("-Ofast")
 
+#include <malloc.h>
+
 #define MAXACCOUNT  50000
 
 struct Account {
@@ -37,11 +39,6 @@ Book *book;
 Account *hash_table[MAXACCOUNT];
 long tick_time;
 
-Account account_pool[MAXACCOUNT];
-int ai;
-Book book_pool[MAXACCOUNT];
-int bi;
-
 void mystr_cpy(char *src, char *dst) {
     int i = 0;
     while (src[i]) {
@@ -70,12 +67,12 @@ int hash_code(const char *src) {
         hash_code = hash_code * 31 + src[i];
         i++;
     }
-    return (hash_code > 0 ? hash_code : -hash_code) / (MAXACCOUNT);
+    hash_code = hash_code > 0 ? hash_code : -hash_code;
+    return hash_code % (MAXACCOUNT);
 }
 
 Account *get_new_account(char *id, char *pwd, long default_t) {
-    Account *account = &account_pool[ai];
-    ai++;
+    auto account = (Account *) malloc(sizeof(Account));
 
     if (account != nullptr) {
         mystr_cpy(id, account->id);
@@ -92,8 +89,7 @@ Account *get_new_account(char *id, char *pwd, long default_t) {
 }
 
 Book *create_new_book(int num, long logout_t, Account *account) {
-    Book *book = &book_pool[bi];
-    bi++;
+    auto book = (Book *) malloc(sizeof(Book));
     if (book != nullptr) {
         book->num = num;
         book->logout_t = logout_t;
@@ -119,7 +115,7 @@ void NewAccount(char id[11], char password[11], int defaulttime) {
         new_account->hashtable_next = old_hash_account;
     }
     hash_table[new_account->hash] = new_account;
-    
+
     //search book page
     long new_logout_t = tick_time + new_account->default_t;
     if (book == nullptr) { // init
