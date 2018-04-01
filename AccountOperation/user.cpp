@@ -2,9 +2,17 @@
 // Created by zhangji on 3/28/18.
 //
 
+#ifndef __clang__
+
 #pragma GCC optimize ("-Ofast")
 
-#include <malloc.h>
+# include <malloc.h>
+
+#else
+
+# include <cstdlib>
+
+#endif
 
 #define MAXACCOUNT  50000
 
