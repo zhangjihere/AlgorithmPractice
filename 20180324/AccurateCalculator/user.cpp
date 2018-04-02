@@ -217,7 +217,7 @@ void compute_optimize(char *rst) {
     // get 0 numbers after decimal dot
     div(temp, down_ret, up_ret);
     int diff = my_strlen(temp);
-    int zero_num_aft_dot = (diff > 1) ? diff - 1 : 0;
+    int zero_num_aft_dot = (diff > 2) ? diff - 2 : 0;
     // up_ret multiple 10^(20*25+1)
     mul(up_ret, up_ret, zeros);
     // check the available
@@ -227,8 +227,8 @@ void compute_optimize(char *rst) {
     if (my_strcmp(temp, up_ret) != 0) {
         decimal_part[20] = '\0';
     } else {// dividible
-        int divb_last_pos = MAX_N / 2;
-        for (divb_last_pos; divb_last_pos >= 0 && decimal_part[divb_last_pos]=='0'; divb_last_pos--) {
+        int divb_last_pos = MAX_N / 2 - zero_num_aft_dot;
+        for (; divb_last_pos >= 0 && decimal_part[divb_last_pos] == '0'; divb_last_pos--) {
         }
         if (divb_last_pos <= 19) {
             int z = (20) - 1;
@@ -236,7 +236,7 @@ void compute_optimize(char *rst) {
             }
             decimal_part[z + 1] = '\0';
         } else {// divb_last_pos >19
-            
+
         }
     }
     // combine integer_part, decimal dot and decimal_part to rst
@@ -245,7 +245,7 @@ void compute_optimize(char *rst) {
         if (i < int_len) {
             rst[i] = integer_part[i];
         } else if (i == int_len) { // check decimal dot
-            if (decimal_part[0] != '0' && decimal_part[1] != '\0') {
+            if (decimal_part[0] != '0') {
                 rst[i] = '.';
             } else {
                 rst[i] = '\0';
