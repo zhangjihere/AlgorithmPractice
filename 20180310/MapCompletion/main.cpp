@@ -31,8 +31,8 @@ void randomscan(char zone[ZONE_SIZE][ZONE_SIZE]) {
 
     int x0 = (pseudo_rand() % ((N - ZONE_SIZE) / 2 + 1)) * 2;  // x0 = 0, 2, 4, ..., N - 4
     int y0 = (pseudo_rand() % ((N - ZONE_SIZE) / 2 + 1)) * 2;  // y0 = 0, 2, 4, ..., N - 4
-//    printf("rand_pos: %d,%d\n", y0, x0);
-    
+    printf("rand_pos: %d,%d\n", y0, x0);
+
     for (int y = 0; y < ZONE_SIZE; ++y)
         for (int x = 0; x < ZONE_SIZE; ++x)
             zone[y][x] = map[y + y0][x + x0];
@@ -104,7 +104,7 @@ int main() {
             totalscore += score;
         }
 
-        printf("#%d %d\n", testcase, score);
+        printf("#%d %d scancount:%d\n", testcase, score, scancount);
     }
 
     if (totalscan > MAX_SCAN_COUNT) totalscan = MAX_SCAN_COUNT;

@@ -96,10 +96,26 @@ void fill_back_area(ScanArea *scan_area, char map[MAX_MAP_SIZE][MAX_MAP_SIZE], c
     }
 }
 
+void re_compute_scan_area(int chk_point_side, ScanArea *const *scanArea, char map[MAX_MAP_SIZE][MAX_MAP_SIZE]) {
+    int kk = 0;
+    for (int ii = 0; ii < chk_point_side; ii++) {
+        for (int jj = 0; jj < chk_point_side; jj++) {
+            int y_delta = ii * 2;
+            int x_delta = jj * 2;
+            scanArea[kk]->hash = hash_area(y_delta, x_delta, map);
+            if (scanArea[kk]->hash != 0) {
+                scanArea[kk]->is_filled = 1;
+            }
+            kk++;
+        }
+    }
+}
+
 void reconstruct(int N, char map[MAX_MAP_SIZE][MAX_MAP_SIZE]) {
     test_case++;
     map_n = N;
 //    print_map(map);
+    // init end
     char rand_map[ZONE_SIZE][ZONE_SIZE];
     int chk_point_side = N / 2 - 1;
     int chk_point_num = chk_point_side * chk_point_side;
@@ -114,25 +130,14 @@ void reconstruct(int N, char map[MAX_MAP_SIZE][MAX_MAP_SIZE]) {
             k++;
         }
     }
-    // init end
     // process start
-
     int is_completed = 0;
-
     while (is_completed == 0) {
-        // check completed
-        for (int i = 0; i < chk_point_num; i++) {
-            if (scanArea[i]->is_filled == 0) {
-                is_completed = 0;
-                break;
-            } else {
-                is_completed = 1;
-            }
-        }
+        print_map(map);
         if (is_completed == 0) {
             // scan
             randomscan(rand_map);
-//            print_rand_map(rand_map);
+            print_rand_map(rand_map);
             unsigned long long rand_map_hash = hash_rand_map(rand_map);
             // check if scaned or not
             int is_scaned = 0;
@@ -153,6 +158,7 @@ void reconstruct(int N, char map[MAX_MAP_SIZE][MAX_MAP_SIZE]) {
                             scanArea[i]->hash = rand_map_hash;
                             scanArea[i]->is_filled = 1;
                             fill_back_area(scanArea[i], map, rand_map);
+                            re_compute_scan_area(chk_point_side, scanArea, map);
                             break;
                         } else {
                             continue;
@@ -161,7 +167,15 @@ void reconstruct(int N, char map[MAX_MAP_SIZE][MAX_MAP_SIZE]) {
                 }
             }
         }
-
+        // check completed
+        for (int i = 0; i < chk_point_num; i++) {
+            if (scanArea[i]->is_filled == 0) {
+                is_completed = 0;
+                break;
+            } else {
+                is_completed = 1;
+            }
+        }
     }
 
 
