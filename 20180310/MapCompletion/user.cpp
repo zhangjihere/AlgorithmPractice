@@ -2,9 +2,14 @@
 // Created by zhangji on 4/4/18.
 //
 
-#pragma GCC optimize("-Ofast")
+#ifndef __clang__
+#pragma GCC optimize ("-Ofast")
+# include <malloc.h>
+#else
 
-#include <malloc.h>
+# include <cstdlib>
+
+#endif
 
 #define MAX_MAP_SIZE        64
 #define ZONE_SIZE           4
