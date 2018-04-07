@@ -13,18 +13,17 @@
 struct Page {
     char kws[4][11];
     int isRemoved;
-    int blockedNum; // each keys is block one time, it count +1
+    int blockedNum;
 };
 
 struct KeyPosition {
     int pageId;
-    int blockedNum; // every time of key blocked, it count +1. After recover it reset 0 
     struct KeyPosition *next;
 };
 
 struct KeyInfo {
     char word[11];
-    int isBlocked;
+    int blockedNum;
     KeyPosition *key_pos;
 };
 
@@ -104,21 +103,15 @@ void addPage(int mId, int m, char word[][11]) {
         if (listLen == 0) {
             copyStr(keyInfo.word, word[i]);
             KeyPosition *newKeyPos = create_KeyPosition(mId);
-            newKeyPos->blockedNum = 0;
             keyInfo.key_pos = newKeyPos;
-            keyInfo.isBlocked = 0;
+            keyInfo.blockedNum = 0;
             node.listLen++;
         } else {// listLen not 0
             int k = 0;
             for (; k < listLen; k++) {
                 if (1 == equalStr(word[i], node.keyList[k].word)) {
                     KeyPosition *newKeyPos = create_KeyPosition(mId);
-                    if (keyInfo.isBlocked == 1) {
-                        newKeyPos->blockedNum = 1;
-                    } else {
-                        newKeyPos->blockedNum = 0;
-                    }
-                    book[pageLen].blockedNum += newKeyPos->blockedNum;
+                    book[pageLen].blockedNum += node.keyList[k].blockedNum;
                     KeyPosition *oldKeyPos = node.keyList[k].key_pos;
                     node.keyList[k].key_pos = newKeyPos;
                     newKeyPos->next = oldKeyPos;
@@ -128,9 +121,8 @@ void addPage(int mId, int m, char word[][11]) {
             if (k == listLen) {
                 copyStr(keyInfo.word, word[i]);
                 KeyPosition *newKeyPos = create_KeyPosition(mId);
-                newKeyPos->blockedNum = 0;
                 keyInfo.key_pos = newKeyPos;
-                keyInfo.isBlocked = 0;
+                keyInfo.blockedNum = 0;
                 node.listLen++;
             }
         }
@@ -151,9 +143,8 @@ void blockWord(char word[]) {
         KeyInfo &keyInfo = node.keyList[k];
         if (1 == equalStr(word, keyInfo.word)) {
             KeyPosition *keyPos = keyInfo.key_pos;
-            keyInfo.isBlocked = 1;
+            keyInfo.blockedNum += 1;
             while (keyPos != nullptr) {
-                keyPos->blockedNum++;
                 book[keyPos->pageId].blockedNum++;
                 keyPos = keyPos->next;
             }
@@ -172,11 +163,10 @@ void recoverWord(char word[]) {
         if (1 == equalStr(word, keyInfo.word)) {
             KeyPosition *keyPos = keyInfo.key_pos;
             while (keyPos != nullptr) {
-                book[keyPos->pageId].blockedNum -= keyPos->blockedNum;
-                keyPos->blockedNum = 0;
+                book[keyPos->pageId].blockedNum -= keyInfo.blockedNum;
                 keyPos = keyPos->next;
             }
-            keyInfo.isBlocked = 0;
+            keyInfo.blockedNum = 0;
             break;
         }
     }
@@ -189,13 +179,13 @@ void check(const char word[11], int pool[MAXPAGES]) {
     for (int k = 0; k < listLen; k++) {
         KeyInfo &keyInfo = node.keyList[k];
         if (1 == equalStr(word, keyInfo.word)) {
-            KeyPosition *next = keyInfo.key_pos;
-            while (next != nullptr) {
-                int pageId = next->pageId;
+            KeyPosition *keyPos = keyInfo.key_pos;
+            while (keyPos != nullptr) {
+                int pageId = keyPos->pageId;
                 if (book[pageId].isRemoved != 1 && book[pageId].blockedNum == 0) {
                     pool[pageId] = 1;
                 }
-                next = next->next;
+                keyPos = keyPos->next;
             }
             break;
         }
