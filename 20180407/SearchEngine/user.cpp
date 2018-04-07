@@ -34,7 +34,7 @@ struct HashNode {
 
 
 Page book[MAXPAGES];
-int pageLen;
+int newPageId;
 HashNode hashTable[MAXWORDS];
 
 int equalStr(const char *dest, const char *src) {
@@ -70,7 +70,7 @@ struct KeyPosition *create_KeyPosition(int pageId) {
 
 //n page number
 void init(int n) {
-    pageLen = 0;
+    newPageId = 0;
     for (auto &node : hashTable) {
         node.listLen = 0;
     }
@@ -88,19 +88,19 @@ int hashcode(const char kw[11]) {
 // 60
 void addPage(int mId, int m, char word[][11]) {
     // page process
-    pageLen = mId;
-    book[pageLen].isRemoved = 0;
-    book[pageLen].blockedNum = 0;
+    newPageId = mId;
+    book[newPageId].isRemoved = 0;
+    book[newPageId].blockedNum = 0;
     for (int i = 0; i < m; i++) {
-        copyStr(book[pageLen].kws[i], word[i]);
+        copyStr(book[newPageId].kws[i], word[i]);
     }
     // hashTable process
     for (int i = 0; i < m; i++) {
         int hash = hashcode(word[i]);
         HashNode &node = hashTable[hash];
         int listLen = node.listLen;
-        KeyInfo &keyInfo = node.keyList[listLen];
         if (listLen == 0) {
+            KeyInfo &keyInfo = node.keyList[listLen];
             copyStr(keyInfo.word, word[i]);
             KeyPosition *newKeyPos = create_KeyPosition(mId);
             keyInfo.key_pos = newKeyPos;
@@ -111,7 +111,7 @@ void addPage(int mId, int m, char word[][11]) {
             for (; k < listLen; k++) {
                 if (1 == equalStr(word[i], node.keyList[k].word)) {
                     KeyPosition *newKeyPos = create_KeyPosition(mId);
-                    book[pageLen].blockedNum += node.keyList[k].blockedNum;
+                    book[newPageId].blockedNum += node.keyList[k].blockedNum;
                     KeyPosition *oldKeyPos = node.keyList[k].key_pos;
                     node.keyList[k].key_pos = newKeyPos;
                     newKeyPos->next = oldKeyPos;
@@ -119,6 +119,7 @@ void addPage(int mId, int m, char word[][11]) {
                 }
             }
             if (k == listLen) {
+                KeyInfo &keyInfo = node.keyList[listLen];
                 copyStr(keyInfo.word, word[i]);
                 KeyPosition *newKeyPos = create_KeyPosition(mId);
                 keyInfo.key_pos = newKeyPos;
