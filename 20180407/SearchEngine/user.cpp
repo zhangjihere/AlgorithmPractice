@@ -2,7 +2,7 @@
 // Created by zhangji on 4/7/18.
 //
 
-//#pragma GCC optimize("-Ofast")
+#pragma GCC optimize("-Ofast")
 
 #include <malloc.h>
 
@@ -28,7 +28,7 @@ struct KeyInfo {
 };
 
 struct HashNode {
-    struct KeyInfo keyList[MAXWORDS];
+    struct KeyInfo keyList[8];
     int listLen;
 };
 
