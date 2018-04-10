@@ -17,6 +17,7 @@ add_subdirectory(day8/GalaxyColumns)
 
 add_subdirectory(AccountOperation)
 
+add_subdirectory(20171202/SamRoute)
 add_subdirectory(20180324/AccurateCalculator)
 add_subdirectory(20180310/MapCompletion)
 add_subdirectory(20180407/SearchEngine)
