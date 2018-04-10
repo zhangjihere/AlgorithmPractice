@@ -28,7 +28,7 @@ struct KeyInfo {
 };
 
 struct HashNode {
-    struct KeyInfo keyList[8];
+    struct KeyInfo keyList[5];
     int listLen;
 };
 
@@ -173,56 +173,74 @@ void recoverWord(char word[]) {
     }
 }
 
-void check(const char word[11], int pool[MAXPAGES]) {
+KeyPosition *find_page_list(const char *word) {
     int hash = hashcode(word);
     HashNode &node = hashTable[hash];
     int listLen = node.listLen;
     for (int k = 0; k < listLen; k++) {
         KeyInfo &keyInfo = node.keyList[k];
         if (1 == equalStr(word, keyInfo.word)) {
-            KeyPosition *keyPos = keyInfo.key_pos;
-            while (keyPos != nullptr) {
-                int pageId = keyPos->pageId;
-                if (book[pageId].isRemoved != 1 && book[pageId].blockedNum == 0) {
-                    pool[pageId] = 1;
-                }
-                keyPos = keyPos->next;
-            }
-            break;
+            return keyInfo.key_pos;
         }
+    }
+    return nullptr;
+}
+
+void check_result(int pageId, int &ret) {
+    if (book[pageId].isRemoved != 1 && book[pageId].blockedNum == 0) {
+        ret++;
     }
 }
 
 int search(char word[][11], int mode) {
-    int pool_0[MAXPAGES];
-    int pool_1[MAXPAGES];
-    for (int i = 0; i < MAXPAGES; i++) {
-        pool_0[i] = 0;
-        pool_1[i] = 0;
-    }
     int ret = 0;
     if (mode == 2) { // OR
-        check(word[0], pool_0);
-        check(word[1], pool_1);
-        for (int i = 0; i < MAXPAGES; i++) {
-            if (!(pool_0[i] != 1 && pool_1[i] != 1)) {
-                ret++;
+        KeyPosition *pages_0 = find_page_list(word[0]);
+        KeyPosition *pages_1 = find_page_list(word[1]);
+        while (pages_0 != nullptr && pages_1 != nullptr) {
+            if (pages_0->pageId > pages_1->pageId) {
+                check_result(pages_0->pageId, ret);
+                pages_0 = pages_0->next;
+            } else if (pages_0->pageId < pages_1->pageId) {
+                check_result(pages_1->pageId, ret);
+                pages_1 = pages_1->next;
+            } else { // pages_0->pageId == pages_1->pageId
+                check_result(pages_0->pageId, ret);
+                pages_0 = pages_0->next;
+                pages_1 = pages_1->next;
+            }
+        }
+        if (pages_0 != nullptr) {
+            while (pages_0 != nullptr) {
+                check_result(pages_0->pageId, ret);
+                pages_0 = pages_0->next;
+            }
+        }
+        if (pages_1 != nullptr) {
+            while (pages_1 != nullptr) {
+                check_result(pages_1->pageId, ret);
+                pages_1 = pages_1->next;
             }
         }
     } else if (mode == 1) { // AND
-        check(word[0], pool_0);
-        check(word[1], pool_1);
-        for (int i = 0; i < MAXPAGES; i++) {
-            if (pool_0[i] == 1 && pool_1[i] == 1) {
-                ret++;
+        KeyPosition *pages_0 = find_page_list(word[0]);
+        KeyPosition *pages_1 = find_page_list(word[1]);
+        while (pages_0 != nullptr && pages_1 != nullptr) {
+            if (pages_0->pageId > pages_1->pageId) {
+                pages_0 = pages_0->next;
+            } else if (pages_0->pageId < pages_1->pageId) {
+                pages_1 = pages_1->next;
+            } else { // pages_0->pageId == pages_1->pageId
+                check_result(pages_0->pageId, ret);
+                pages_0 = pages_0->next;
+                pages_1 = pages_1->next;
             }
         }
     } else { // just 0th
-        check(word[0], pool_0);
-        for (int mark : pool_0) {
-            if (mark == 1) {
-                ret++;
-            }
+        KeyPosition *pages_0 = find_page_list(word[0]);
+        while (pages_0 != nullptr) {
+            check_result(pages_0->pageId, ret);
+            pages_0 = pages_0->next;
         }
     }
     return ret;
