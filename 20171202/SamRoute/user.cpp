@@ -82,20 +82,20 @@ void add_Q_vertex(int id, int x, int y, int index) {
         dis_mtx[next_vt_id][next_vt_id] = 0;
         next_vt_id++;
     }
+    park_list[id].o4c[index][0] = x;
+    park_list[id].o4c[index][1] = y;
     park_size = id;
-    park_list[park_size].o4c[index][0] = x;
-    park_list[park_size].o4c[index][1] = y;
 }
 
 int add_P_vertex(int id, int x, int y) {
-    park_size = id;
     Cell *p_cell = &map[x][y];
     p_cell->vt_type = 'P';
     p_cell->vt_id = next_vt_id;
     p_cell->b_id = id;
-    park_list[park_size].park = p_cell;
-    park_list[park_size].o4c[0][0] = x;
-    park_list[park_size].o4c[0][1] = y;
+    park_list[id].park = p_cell;
+    park_list[id].o4c[0][0] = x;
+    park_list[id].o4c[0][1] = y;
+    park_size = id;
     dis_mtx[next_vt_id][next_vt_id] = 0;
     next_vt_id++;
     return p_cell->vt_id;
