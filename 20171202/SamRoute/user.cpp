@@ -20,12 +20,18 @@ struct Building {
     int o4c[5][2];
 };
 
+struct AdjacentBuilding {
+    int num;
+    int ids[3];
+};
+
 Cell map[MAX_N][MAX_N];
 int next_vt_id = 1;
 Building park_list[MAX_BUILDING + 1];
 int park_size = 0;
 int dis_mtx[MAX_VT][MAX_VT];
 int map_wd;
+AdjacentBuilding adjBD;
 
 void init(int n) {
     map_wd = n;
@@ -87,14 +93,27 @@ void add_Q_vertex(int id, int x, int y, int index) {
     park_size = id;
 }
 
-int add_P_vertex(int id, int x, int y) {
-    Cell *p_cell = &map[x][y];
+int add_P_vertex(int id, int locX, int locY, int w, int h, int px, int py) {
+    int outP_x, outP_y;
+    int locP_x = locX + px;
+    int locP_y = locY + py;
+    if (py == 0) { //Park cell at UP side
+        outP_x = locP_x, outP_y = locP_y - 1;
+    } else if (px == (w - 1)) { //Park cell at RIGHT side
+        outP_x = locP_x + 1, outP_y = locP_y;
+    } else if (py == (h - 1)) { //Park cell at DOWN side
+        outP_x = locP_x, outP_y = locP_y + 1;
+    } else { //px==0  Park cell at LEFT side
+        outP_x = locP_x - 1, outP_y = locP_y;
+    }
+
+    Cell *p_cell = &map[outP_x][outP_y];
     p_cell->vt_type = 'P';
     p_cell->vt_id = next_vt_id;
     p_cell->b_id = id;
     park_list[id].park = p_cell;
-    park_list[id].o4c[0][0] = x;
-    park_list[id].o4c[0][1] = y;
+    park_list[id].o4c[0][0] = outP_x;
+    park_list[id].o4c[0][1] = outP_y;
     park_size = id;
     dis_mtx[next_vt_id][next_vt_id] = 0;
     next_vt_id++;
@@ -108,7 +127,7 @@ Cell *check_2_vertex(struct Cell *cur_cell, struct Cell *next_cell, int &dis, in
     } else { // cur_vt_id != 0, the cur_type 
         dis++;
         if (next_cell->vt_type == 'Q') {
-            for (int i = 1; i < map_wd; i++) {
+            for (int i = 1; i < next_vt_id; i++) {
                 if (dis_mtx[cur_cell->vt_id][i] != 0) {
                     dis_mtx[cur_cell->vt_id][i] = DEFAULT_INFINITE_VALUE;
                 }
@@ -117,7 +136,7 @@ Cell *check_2_vertex(struct Cell *cur_cell, struct Cell *next_cell, int &dis, in
             dis = 0;
             return next_cell;
         } else if (next_cell->vt_type == 'P' && next_cell->vt_id == park_id) { // cur_type == 'P'
-            for (int i = 1; i < map_wd; i++) {
+            for (int i = 1; i < next_vt_id; i++) {
                 if (dis_mtx[cur_cell->vt_id][i] != 0) {
                     dis_mtx[cur_cell->vt_id][i] = DEFAULT_INFINITE_VALUE;
                 }
@@ -132,7 +151,7 @@ Cell *check_2_vertex(struct Cell *cur_cell, struct Cell *next_cell, int &dis, in
 }
 
 // clockwise, have 4 dir R/D/L/U
-int check_road(int id, int start_x, int start_y, int end_x, int end_y, char dir, int park_id) {
+AdjacentBuilding *check_road(int id, int start_x, int start_y, int end_x, int end_y, char dir, int park_id) {
     int cur_x = start_x, cur_y = start_y;
     int next_x = start_x, next_y = start_y;
     int dis = 0;
@@ -143,44 +162,44 @@ int check_road(int id, int start_x, int start_y, int end_x, int end_y, char dir,
         next_x += 1;
         while (next_x <= end_x) {
             next_cell = &map[next_x][next_y];
-            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
-            if (cur_cell->b_id != id) {
-                adj_b_id = cur_cell->b_id;
+            if (cur_cell->b_id != 0 && cur_cell->b_id != id) {
+                adjBD.ids[adjBD.num++] = cur_cell->b_id;
             }
+            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
             next_x += 1;
         }
     } else if (dir == 'D') {
         next_y += 1;
         while (next_y <= end_y) {
             next_cell = &map[next_x][next_y];
-            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
-            if (cur_cell->b_id != id) {
-                adj_b_id = cur_cell->b_id;
+            if (cur_cell->b_id != 0 && cur_cell->b_id != id) {
+                adjBD.ids[adjBD.num++] = cur_cell->b_id;
             }
+            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
             next_y += 1;
         }
     } else if (dir == 'L') {
         next_x += -1;
         while (next_x >= end_x) {
             next_cell = &map[next_x][next_y];
-            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
-            if (cur_cell->b_id != id) {
-                adj_b_id = cur_cell->b_id;
+            if (cur_cell->b_id != 0 && cur_cell->b_id != id) {
+                adjBD.ids[adjBD.num++] = cur_cell->b_id;
             }
+            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
             next_x += -1;
         }
     } else { // 'U'
         next_y += -1;
         while (next_y >= end_y) {
             next_cell = &map[next_x][next_y];
-            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
-            if (cur_cell->b_id != id) {
-                adj_b_id = cur_cell->b_id;
+            if (cur_cell->b_id != 0 && cur_cell->b_id != id) {
+                adjBD.ids[adjBD.num++] = cur_cell->b_id;
             }
+            cur_cell = check_2_vertex(cur_cell, next_cell, dis, park_id);
             next_y += -1;
         }
     }
-    return adj_b_id;
+    return &adjBD;
 }
 
 Cell *recheck_2_vertex(struct Cell *cur_cell, struct Cell *next_cell, int &dis, int park_id) {
@@ -243,61 +262,59 @@ void recheck_road_adj_building(int id, int start_x, int start_y, int end_x, int 
 
 // 1
 void addBuilding(int id, int locX, int locY, int w, int h, int px, int py) {
-    int locP_x = locX + px;
-    int locP_y = locY + py;
-    int a_x = locX - 1, a_y = locY - 1;
-    int b_x = (locX + w), b_y = locY - 1;
-    int c_x = (locX + w), c_y = (locY + h);
-    int d_x = locX - 1, d_y = (locY + h);
-    int p_x, p_y;
-    add_Q_vertex(id, a_x, a_y, 1);
-    add_Q_vertex(id, b_x, b_y, 2);
-    add_Q_vertex(id, c_x, c_y, 3);
-    add_Q_vertex(id, d_x, d_y, 4);
-    int p_vt_id;
-    if (py == 0) { //Park cell at UP side
-        p_x = locP_x, p_y = locP_y - 1;
-    } else if (px == (w - 1)) { //Park cell at RIGHT side
-        p_x = locP_x + 1, p_y = locP_y;
-
-    } else if (py == (h - 1)) { //Park cell at DOWN side
-        p_x = locP_x, p_y = locP_y + 1;
-    } else { //px==0  Park cell at LEFT side
-        p_x = locP_x - 1, p_y = locP_y;
-    }
-    p_vt_id = add_P_vertex(id, p_x, p_y);
-
-    int adj_b_id;
-    Building *bd;
-    adj_b_id = check_road(id, a_x, a_y, b_x, b_y, 'R', p_vt_id);
-    if (adj_b_id != id) {
-        bd = &park_list[adj_b_id];
-        recheck_road_adj_building(adj_b_id, bd->o4c[3][0], bd->o4c[3][1], bd->o4c[4][0], bd->o4c[4][1], 'L',
-                                  bd->park->vt_id);
-    }
-
-    adj_b_id = check_road(id, b_x, b_y, c_x, c_y, 'D', p_vt_id);
-    if (adj_b_id != id) {
-        bd = &park_list[adj_b_id];
-        recheck_road_adj_building(adj_b_id, bd->o4c[4][0], bd->o4c[4][1], bd->o4c[1][0], bd->o4c[1][1], 'U',
-                                  bd->park->vt_id);
-    }
-
-    adj_b_id = check_road(id, c_x, c_y, d_x, d_y, 'L', p_vt_id);
-    if (adj_b_id != id) {
-        bd = &park_list[adj_b_id];
-        recheck_road_adj_building(adj_b_id, bd->o4c[1][0], bd->o4c[1][1], bd->o4c[2][0], bd->o4c[2][1], 'R',
-                                  bd->park->vt_id);
-    }
-
-    adj_b_id = check_road(id, d_x, d_y, a_x, a_y, 'U', p_vt_id);
-    if (adj_b_id != id) {
-        bd = &park_list[adj_b_id];
-        recheck_road_adj_building(adj_b_id, bd->o4c[2][0], bd->o4c[2][1], bd->o4c[3][0], bd->o4c[3][1], 'D',
-                                  bd->park->vt_id);
-    }
-
+    int outA_x = locX - 1, outA_y = locY - 1;
+    int outB_x = (locX + w), outB_y = locY - 1;
+    int outC_x = (locX + w), outC_y = (locY + h);
+    int outD_x = locX - 1, outD_y = (locY + h);
+    add_Q_vertex(id, outA_x, outA_y, 1);
+    add_Q_vertex(id, outB_x, outB_y, 2);
+    add_Q_vertex(id, outC_x, outC_y, 3);
+    add_Q_vertex(id, outD_x, outD_y, 4);
+    int p_vt_id = add_P_vertex(id, locX, locY, w, h, px, py);
     print_map();
+    int adj_b_id;
+    AdjacentBuilding *_adjDB;
+    Building *bd;
+    _adjDB = check_road(id, outA_x, outA_y, outB_x, outB_y, 'R', p_vt_id);
+    if (_adjDB->num != 0) {
+        for (int i = 0; i < _adjDB->num; i++) {
+            adj_b_id = _adjDB->ids[i];
+            bd = &park_list[adj_b_id];
+            recheck_road_adj_building(adj_b_id, bd->o4c[3][0], bd->o4c[3][1], bd->o4c[4][0], bd->o4c[4][1], 'L',
+                                      bd->park->vt_id);
+        }
+        _adjDB->num = 0;
+    }
+    _adjDB = check_road(id, outB_x, outB_y, outC_x, outC_y, 'D', p_vt_id);
+    if (_adjDB->num != 0) {
+        for (int i = 0; i < _adjDB->num; i++) {
+            adj_b_id = _adjDB->ids[i];
+            bd = &park_list[adj_b_id];
+            recheck_road_adj_building(adj_b_id, bd->o4c[4][0], bd->o4c[4][1], bd->o4c[1][0], bd->o4c[1][1], 'U',
+                                      bd->park->vt_id);
+        }
+        _adjDB->num = 0;
+    }
+    _adjDB = check_road(id, outC_x, outC_y, outD_x, outD_y, 'L', p_vt_id);
+    if (_adjDB->num != 0) {
+        for (int i = 0; i < _adjDB->num; i++) {
+            adj_b_id = _adjDB->ids[i];
+            bd = &park_list[adj_b_id];
+            recheck_road_adj_building(adj_b_id, bd->o4c[1][0], bd->o4c[1][1], bd->o4c[2][0], bd->o4c[2][1], 'R',
+                                      bd->park->vt_id);
+        }
+    }
+    _adjDB = check_road(id, outD_x, outD_y, outA_x, outA_y, 'U', p_vt_id);
+    if (_adjDB->num != 0) {
+        for (int i = 0; i < _adjDB->num; i++) {
+            adj_b_id = _adjDB->ids[i];
+            bd = &park_list[adj_b_id];
+            recheck_road_adj_building(adj_b_id, bd->o4c[2][0], bd->o4c[2][1], bd->o4c[3][0], bd->o4c[3][1], 'D',
+                                      bd->park->vt_id);
+        }
+        _adjDB->num = 0;
+    }
+
     print_dis_mtx();
 }
 
