@@ -2,13 +2,15 @@
 // Created by zhangji on 4/10/18.
 //
 
-#include <stdio.h>
-
 #define MAX_N                       50
 #define MAX_BUILDING                1000
 #define MAX_VT                      300
 #define DEFAULT_INFINITE_VALUE      88
 #define MAX_ADJ_NUM                 8
+
+#include <iostream>
+
+using namespace std;
 
 typedef enum {
     NONE = 0,
@@ -26,7 +28,7 @@ struct Cell {
     int vt_id;          // vertex id, if Cell is vertex, it will have vt_id
     CELL_TYPE cell_type;// (PARK_OUTER)Park outer or (CORNER_OUTER)4 out corner of building corner or (EDGE)4 Edges of building
     int e_bd_id;        // if the cell is in the edge of a building, it is the id of building which include the edge.
-                        // the building's corner is always in the edge.
+    // the building's corner is always in the edge.
 };
 
 struct Building {
@@ -41,9 +43,13 @@ struct AdjacentBuilding {
 
 int map_wd;
 Cell map[MAX_N][MAX_N];
-Building buildings[MAX_BUILDING + 1];
+
 int next_vt_id = 1;
+Building buildings[MAX_BUILDING + 1];
 AdjacentBuilding adjBuildings;
+int adj_bd_markbook[MAX_BUILDING + 1]; // bd_add_num(number of added building) to mark its adjacent building id
+int bd_add_num;
+
 int dis_mtx[MAX_VT][MAX_VT];
 
 void init(int n) {
@@ -55,6 +61,10 @@ void init(int n) {
             cell.e_bd_id = 0;
         }
     }
+    bd_add_num = 0;
+    for (int &mark : adj_bd_markbook) {
+        mark = 0;
+    }
     next_vt_id = 1;
     for (auto &row : dis_mtx) {
         for (int &dis : row) {
@@ -63,19 +73,24 @@ void init(int n) {
     }
 }
 
+void print_array(int *array) {
+    for (int i = 1; i < next_vt_id; i++) {
+        cout << array[i] << "\t";
+    }
+    cout << endl;
+}
+
 void print_dis_mtx(int mtx[MAX_VT][MAX_VT], int row, int col) {
     for (int vt_id = 0; vt_id < row; vt_id++) {
-        printf("%d-\t", vt_id);
+        cout << vt_id << "-\t";
         if (vt_id == 0) {
             for (int j = 1; j < col; j++) {
-                printf("%d\t", j);
+                cout << j << "\t";
             }
+            cout << endl;
         } else {
-            for (int j = 1; j < col; j++) {
-                printf("%d\t", mtx[vt_id][j]);
-            }
+            print_array(mtx[vt_id]);
         }
-        printf("\n");
     }
 }
 
@@ -83,23 +98,16 @@ void print_map() {
     for (int i = 0; i < map_wd; i++) {
         for (int col = 0; col < map_wd; col++) {
             if (map[col][i].cell_type == '\0') {
-                printf("%d \t", map[col][i].vt_id);
+                cout << map[col][i].vt_id << " \t";
             } else if (map[col][i].cell_type == CORNER_OUTER || map[col][i].cell_type == PARK_OUTER) {
-                printf("%d%c\t", map[col][i].vt_id, map[col][i].cell_type);
+                cout << map[col][i].vt_id << (char) map[col][i].cell_type << "\t";
             } else {
-                printf("%c\t", map[col][i].cell_type);
+                cout << (char) map[col][i].cell_type << "\t";
             }
         }
-        printf("\n");
+        cout << endl;
     }
-    printf("\n");
-}
-
-void print_array(int *array) {
-    for (int i = 1; i < next_vt_id; i++) {
-        printf("%d ", array[i]);
-    }
-    printf("\n");
+    cout << endl;
 }
 
 int copyArray2D(int src[MAX_VT][MAX_VT], int dst[MAX_VT][MAX_VT]) {
@@ -137,6 +145,12 @@ void set_building_edge(int id, int a_x, int a_y, int b_x, int b_y) {
     }
 }
 
+//  A    1   B
+//   * ----->   
+// 4 |       |
+//   |       | 2
+//     <---- *
+//  D    3   C
 void add_4Q_vertext(int id, int locX, int locY, int w, int h) {
     int outA_x = locX - 1, outA_y = locY - 1;
     int outB_x = (locX + w), outB_y = locY - 1;
@@ -198,20 +212,16 @@ void update_vertex_dis_mtx(int cur_vt_id, int next_vt_id, int &dis, OPT_TYPE opt
     dis = 0;
 }
 
-Cell *check_2_vertex(struct Cell *cur_cell, struct Cell *next_cell, int &dis, int p_vt_id, OPT_TYPE opt) {
-    if (next_cell->vt_id == 0) {
-        dis++;
-        return cur_cell;
-    } else { // cur_vt_id != 0, the cur_type 
-        dis++;
-        if (next_cell->cell_type == CORNER_OUTER) {
-            update_vertex_dis_mtx(cur_cell->vt_id, next_cell->vt_id, dis, opt);
-            return next_cell;
-        } else if (next_cell->cell_type == PARK_OUTER && next_cell->vt_id == p_vt_id) { // cur_type == PARK_OUTER
-            update_vertex_dis_mtx(cur_cell->vt_id, next_cell->vt_id, dis, opt);
-            return next_cell;
-        } else {
-            return cur_cell;
+void check_2_vertex(struct Cell **cur_cell, struct Cell **next_cell, int &dis, int p_vt_id, OPT_TYPE opt) {
+    dis++;
+    int nx_vt_id = (*next_cell)->vt_id;
+    if (nx_vt_id != 0) {
+        int cur_vt_id = (*cur_cell)->vt_id;
+        CELL_TYPE nx_type = (*next_cell)->cell_type;
+        if (nx_type == CORNER_OUTER
+            || (nx_type == PARK_OUTER && nx_vt_id == p_vt_id)) { // PARK_OUTER is only self building's park outer
+            update_vertex_dis_mtx(cur_vt_id, nx_vt_id, dis, opt);
+            *cur_cell = *next_cell;
         }
     }
 }
@@ -232,20 +242,15 @@ int eight_dir[8][2] = {{1,  -1},
 void collect_adj_buildings(int id, int x, int y) {
     int sx, sy, e_bd_id;
     struct Cell *s_cell;
-    for (int d = 0; d < 8; d++) {
-        sx = x + eight_dir[d][0];
-        sy = y + eight_dir[d][1];
+    for (auto &dir : eight_dir) {
+        sx = x + dir[0];
+        sy = y + dir[1];
         if (0 <= sx && sx <= map_wd && 0 <= sy && sy <= map_wd) {
             s_cell = &map[sx][sy];
             e_bd_id = s_cell->e_bd_id;
             if (e_bd_id != 0 && e_bd_id != id) {
-                int j = 0;
-                for (; j < adjBuildings.num; j++) {
-                    if (adjBuildings.ids[j] == e_bd_id) {
-                        break;
-                    }
-                }
-                if (j == adjBuildings.num) {
+                if (adj_bd_markbook[e_bd_id] != bd_add_num) {
+                    adj_bd_markbook[e_bd_id] = bd_add_num;
                     adjBuildings.ids[adjBuildings.num++] = e_bd_id;
                 }
             }
@@ -253,12 +258,12 @@ void collect_adj_buildings(int id, int x, int y) {
     }
 }
 
-//       1
+//  A    1   B
 //   * ----->   
 // 4 |       |
 //   |       | 2
 //     <---- *
-//       3
+//  D    3   C
 int clock_wise[5][2] = {{0,  0},    // ignore
                         {1,  0},    // left_top to right_top
                         {0,  1},    // right_top to right_bottom
@@ -303,7 +308,7 @@ void check_building(int id, struct Building *bd, int p_vt_id, OPT_TYPE opt) {
             if (opt == CHECK_SELF) {
                 collect_adj_buildings(id, next_x, next_y);
             }
-            cur_cell = check_2_vertex(cur_cell, next_cell, dis, p_vt_id, opt);
+            check_2_vertex(&cur_cell, &next_cell, dis, p_vt_id, opt);
             next_x += dx;
             next_y += dy;
         }
@@ -312,9 +317,10 @@ void check_building(int id, struct Building *bd, int p_vt_id, OPT_TYPE opt) {
 
 // 1
 void addBuilding(int id, int locX, int locY, int w, int h, int px, int py) {
+    bd_add_num++;
     add_4Q_vertext(id, locX, locY, w, h);
     int p_vt_id = add_P_vertex(id, locX, locY, w, h, px, py);
-//    print_map();
+    print_map();
     Building *bd = &buildings[id];
     check_building(id, bd, p_vt_id, CHECK_SELF);// check self building
     if (adjBuildings.num != 0) { // check adjacent building
@@ -326,7 +332,7 @@ void addBuilding(int id, int locX, int locY, int w, int h, int px, int py) {
         }
         adjBuildings.num = 0;
     }
-//    print_dis_mtx(dis_mtx, next_vt_id, next_vt_id);
+    print_dis_mtx(dis_mtx, next_vt_id, next_vt_id);
 }
 
 void floyd_shortest_path(int ret_mtx[MAX_VT][MAX_VT]) {
@@ -370,25 +376,23 @@ void dijkstra_shortest_path(int dis_mtx[MAX_VT][MAX_VT], int from, int dis[MAX_V
 
 // 2
 int getDistance(int from, int to) {
-//    printf("getDistance\n");
-//    print_map();
-//    print_dis_mtx(dis_mtx, next_vt_id, next_vt_id);
+//    cout << "getDistance:" << endl;
     int vt_A = buildings[from].park->vt_id;
     int vt_B = buildings[to].park->vt_id;
 
     // Floyd algorithm
-/*    int ret_mtx[MAX_VT][MAX_VT];
-    copyArray2D(dis_mtx, ret_mtx);
-    floyd_shortest_path(ret_mtx);
-    int ret = ret_mtx[vt_A][vt_B] + 2;
-    print_dis_mtx(ret_mtx, next_vt_id, next_vt_id);*/
+    int ret_dis_mtx[MAX_VT][MAX_VT];
+    copyArray2D(dis_mtx, ret_dis_mtx);
+    floyd_shortest_path(ret_dis_mtx);
+    int ret_0 = ret_dis_mtx[vt_A][vt_B] + 2;
+//    print_dis_mtx(ret_dis_mtx, next_vt_id, next_vt_id);
 
     // Dijkstra algorithm
-    int dis[MAX_VT];
-    copyArray1D(dis_mtx[vt_A], dis);
-    dijkstra_shortest_path(dis_mtx, vt_A, dis);
-    int ret = dis[vt_B] + 2;
-//    print_array(dis);
+    int ret_dis[MAX_VT];
+    copyArray1D(dis_mtx[vt_A], ret_dis);
+    dijkstra_shortest_path(dis_mtx, vt_A, ret_dis);
+    int ret_1 = ret_dis[vt_B] + 2;
+//    print_array(ret_dis);
 
-    return ret;
+    return (ret_0 + ret_1) / 2;
 }
