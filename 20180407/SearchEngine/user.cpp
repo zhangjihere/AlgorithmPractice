@@ -28,7 +28,7 @@ struct KeyInfo {
 };
 
 struct HashNode {
-    struct KeyInfo keyList[5];
+    struct KeyInfo keyList[16];
     int listLen;
 };
 
@@ -71,8 +71,11 @@ struct KeyPosition *create_KeyPosition(int pageId) {
 //n page number
 void init(int n) {
     newPageId = 0;
-    for (auto &node : hashTable) {
-        node.listLen = 0;
+    for (auto &node : hashTable) { // remain the residual key list from previous test case. 
+        for (int i = 0; i < node.listLen; i++) {
+            node.keyList[i].blockedNum = 0;
+            node.keyList[i].key_pos = nullptr;
+        }
     }
 }
 
@@ -99,33 +102,24 @@ void addPage(int mId, int m, char word[][11]) {
         int hash = hashcode(word[i]);
         HashNode &node = hashTable[hash];
         int listLen = node.listLen;
-        if (listLen == 0) {
+        int k = 0;
+        for (; k < listLen; k++) {
+            if (1 == equalStr(word[i], node.keyList[k].word)) {
+                KeyPosition *newKeyPos = create_KeyPosition(mId);
+                book[newPageId].blockedNum += node.keyList[k].blockedNum;
+                KeyPosition *oldKeyPos = node.keyList[k].key_pos;
+                node.keyList[k].key_pos = newKeyPos;
+                newKeyPos->next = oldKeyPos;
+                break;
+            }
+        }
+        if (k == listLen) {
             KeyInfo &keyInfo = node.keyList[listLen];
             copyStr(keyInfo.word, word[i]);
             KeyPosition *newKeyPos = create_KeyPosition(mId);
             keyInfo.key_pos = newKeyPos;
             keyInfo.blockedNum = 0;
             node.listLen++;
-        } else {// listLen not 0
-            int k = 0;
-            for (; k < listLen; k++) {
-                if (1 == equalStr(word[i], node.keyList[k].word)) {
-                    KeyPosition *newKeyPos = create_KeyPosition(mId);
-                    book[newPageId].blockedNum += node.keyList[k].blockedNum;
-                    KeyPosition *oldKeyPos = node.keyList[k].key_pos;
-                    node.keyList[k].key_pos = newKeyPos;
-                    newKeyPos->next = oldKeyPos;
-                    break;
-                }
-            }
-            if (k == listLen) {
-                KeyInfo &keyInfo = node.keyList[listLen];
-                copyStr(keyInfo.word, word[i]);
-                KeyPosition *newKeyPos = create_KeyPosition(mId);
-                keyInfo.key_pos = newKeyPos;
-                keyInfo.blockedNum = 0;
-                node.listLen++;
-            }
         }
     }
 }
@@ -140,7 +134,8 @@ void blockWord(char word[]) {
     int hash = hashcode(word);
     HashNode &node = hashTable[hash];
     int listLen = node.listLen;
-    for (int k = 0; k < listLen; k++) {
+    int k = 0;
+    for (; k < listLen; k++) {
         KeyInfo &keyInfo = node.keyList[k];
         if (1 == equalStr(word, keyInfo.word)) {
             KeyPosition *keyPos = keyInfo.key_pos;
@@ -151,6 +146,12 @@ void blockWord(char word[]) {
             }
             break;
         }
+    }
+    if (k == listLen) {
+        KeyInfo &keyInfo = node.keyList[listLen];
+        copyStr(keyInfo.word, word);
+        keyInfo.blockedNum += 1;
+        node.listLen++;
     }
 }
 

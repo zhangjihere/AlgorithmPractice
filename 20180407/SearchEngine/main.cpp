@@ -205,7 +205,7 @@ static int run(int test_case) {
             int answer = searchFunc();
             int correct;
 
-            if (test_case <= 5) {
+            if (test_case <= 50) {
                 scanf("%d", &correct);
 
                 if (correct == answer) {
