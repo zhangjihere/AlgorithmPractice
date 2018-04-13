@@ -104,11 +104,12 @@ void addPage(int mId, int m, char word[][11]) {
         int listLen = node.listLen;
         int k = 0;
         for (; k < listLen; k++) {
-            if (1 == equalStr(word[i], node.keyList[k].word)) {
+            KeyInfo &keyInfo = node.keyList[k];
+            if (1 == equalStr(word[i], keyInfo.word)) {
                 KeyPosition *newKeyPos = create_KeyPosition(mId);
-                book[newPageId].blockedNum += node.keyList[k].blockedNum;
-                KeyPosition *oldKeyPos = node.keyList[k].key_pos;
-                node.keyList[k].key_pos = newKeyPos;
+                book[newPageId].blockedNum += keyInfo.blockedNum;
+                KeyPosition *oldKeyPos = keyInfo.key_pos;
+                keyInfo.key_pos = newKeyPos;
                 newKeyPos->next = oldKeyPos;
                 break;
             }
@@ -139,9 +140,9 @@ void blockWord(char word[]) {
         KeyInfo &keyInfo = node.keyList[k];
         if (1 == equalStr(word, keyInfo.word)) {
             KeyPosition *keyPos = keyInfo.key_pos;
-            keyInfo.blockedNum += 1;
+            keyInfo.blockedNum = 1;
             while (keyPos != nullptr) {
-                book[keyPos->pageId].blockedNum++;
+                book[keyPos->pageId].blockedNum += 1;
                 keyPos = keyPos->next;
             }
             break;
@@ -150,7 +151,7 @@ void blockWord(char word[]) {
     if (k == listLen) {
         KeyInfo &keyInfo = node.keyList[listLen];
         copyStr(keyInfo.word, word);
-        keyInfo.blockedNum += 1;
+        keyInfo.blockedNum = 1;
         node.listLen++;
     }
 }
@@ -165,7 +166,7 @@ void recoverWord(char word[]) {
         if (1 == equalStr(word, keyInfo.word)) {
             KeyPosition *keyPos = keyInfo.key_pos;
             while (keyPos != nullptr) {
-                book[keyPos->pageId].blockedNum -= keyInfo.blockedNum;
+                book[keyPos->pageId].blockedNum -= 1;
                 keyPos = keyPos->next;
             }
             keyInfo.blockedNum = 0;
