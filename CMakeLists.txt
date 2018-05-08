@@ -20,4 +20,5 @@ add_subdirectory(20171202-SamRoute)
 add_subdirectory(20180324-AccurateCalculator)
 add_subdirectory(20180310-MapCompletion)
 add_subdirectory(20180407-SearchEngine)
+add_subdirectory(20180428-GMemo)
 
