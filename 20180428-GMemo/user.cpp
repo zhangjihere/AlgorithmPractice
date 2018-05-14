@@ -1,6 +1,5 @@
-//#define int register int
+#define rint register int
 
-#define MAX_SCREEN_SIZE         1000
 #define MAX_MEMO                10000
 #define MAX_MEMO_STR            2555
 
@@ -22,7 +21,7 @@ int _min(int x, int y) { return x < y ? x : y; }
 int _max(int x, int y) { return x > y ? x : y; }
 
 int _strcpy(char *src, char *dst) {
-    int l = 0;
+    rint l = 0;
     while (*dst++ = *src++) ++l;
     return l;
 }
@@ -69,23 +68,23 @@ void modify_memo(int mId, int mHeight, int mWidth, char str[]) {
 void get_screen_context(int mY, int mX, char res[5][5]) {
     int zTable[5][5] = {0};
 
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
+    for (rint i = 0; i < 5; i++) {
+        for (rint j = 0; j < 5; j++) {
             res[i][j] = 0;
         }
     }
 
-    for (int i = 0; i < memos; ++i) {
+    for (rint i = 0; i < memos; ++i) {
         if (memoBook[i].right < mX || memoBook[i].left > mX + 4
             || memoBook[i].down < mY || memoBook[i].up > mY + 4)
             continue;
         // check the intersection area
-        int startX = _max(memoBook[i].left, mX), startY = _max(memoBook[i].up, mY);
-        int endX = _min(memoBook[i].right, mX + 4), endY = _min(memoBook[i].down, mY + 4);
+        rint startX = _max(memoBook[i].left, mX), startY = _max(memoBook[i].up, mY);
+        rint endX = _min(memoBook[i].right, mX + 4), endY = _min(memoBook[i].down, mY + 4);
         // check first char in the memo matching the res area
-        int idx = (startY - memoBook[i].up) * memoBook[i].w + (startX - memoBook[i].left);
-        for (int y = startY; y <= endY; ++y) {
-            for (int x = startX; x <= endX; ++x) {
+        rint idx = (startY - memoBook[i].up) * memoBook[i].w + (startX - memoBook[i].left);
+        for (rint y = startY; y <= endY; ++y) {
+            for (rint x = startX; x <= endX; ++x) {
                 if (memoBook[i].z > zTable[y - mY][x - mX]) {
                     res[y - mY][x - mX] = idx < memoBook[i].l ? memoBook[i].str[idx] : 0;
                     zTable[y - mY][x - mX] = memoBook[i].z;
