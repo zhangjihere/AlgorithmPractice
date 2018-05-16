@@ -22,8 +22,8 @@ Block *createNewBlock(int hash, int len, int pos, struct Block *nbro, struct Blo
     auto *new_block = (Block *) malloc(sizeof(Block));
     if (new_block != nullptr) {
         new_block->hash = hash;
-        new_block->len = len;
-        new_block->pos = pos;
+//        new_block->len = len;
+//        new_block->pos = pos;
         new_block->nbro = nbro;
         new_block->fcld = fcld;
     }
