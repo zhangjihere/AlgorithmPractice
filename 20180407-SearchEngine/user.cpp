@@ -1,10 +1,12 @@
 //
 // Created by zhangji on 4/7/18.
 //
-
+#ifndef __clang__
 #pragma GCC optimize("-Ofast")
-
 #include <malloc.h>
+#else
+# include <cstdlib>
+#endif
 
 #define MAXPAGES 50000
 #define MAXWORDS 10000

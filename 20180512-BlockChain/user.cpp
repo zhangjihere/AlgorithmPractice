@@ -1,4 +1,9 @@
+#ifndef __clang__
+#pragma GCC optimize("-Ofast")
 #include <malloc.h>
+#else
+# include <cstdlib>
+#endif
 
 #define MAXSERVER           5
 #define MAXTRANSACTION      16
