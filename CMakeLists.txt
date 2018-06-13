@@ -22,4 +22,5 @@ add_subdirectory(20180310-MapCompletion)
 add_subdirectory(20180407-SearchEngine)
 add_subdirectory(20180428-GMemo)
 add_subdirectory(20180512-BlockChain)
+add_subdirectory(20170512-DiskScheduling)
 
