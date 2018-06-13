@@ -84,7 +84,11 @@ static int run(int tc) {
             else if (cmd == CMD_LOOK) user_answer = look();
             else user_answer = clook();
 
-            if (answer[answer_idx++] == user_answer) ++correct;
+            if (answer[answer_idx++] == user_answer) {
+                ++correct;
+            } else {
+                printf("r ");
+            }
         } else {
             if (tc <= 4) new_track = req_q[req_idx++];
             else {
