@@ -53,6 +53,8 @@ static bool run() {
         int result = calcAmount(hash, exchangeid);
         if (result == answer)
             ++corrected;
+        else 
+            int s =0;
     }
 
     return corrected == Q;

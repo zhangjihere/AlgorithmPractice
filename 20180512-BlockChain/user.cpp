@@ -32,9 +32,9 @@ Block blks[BLOCK_HASH_SIZE];
 int umark[BLOCK_HASH_SIZE];
 Leaf leafs;
 int mark;
+int half_S;
 
 int cpt_hash_absorb(int h) {
-    int time = 0;
     int index = h % BLOCK_HASH_SIZE;
     index = index < 0 ? -index : index;
     while (umark[index] == mark) {
@@ -44,9 +44,6 @@ int cpt_hash_absorb(int h) {
         index++;
         index = index % BLOCK_HASH_SIZE;
         index = index < 0 ? -index : index;
-        if (++time > BLOCK_HASH_SIZE) {
-            return -1;
-        }
     }
     blks[index].s_num = 0;
     umark[index] = mark;
@@ -56,7 +53,7 @@ int cpt_hash_absorb(int h) {
 int cpt_hash_match(int h) {
     int index = h % BLOCK_HASH_SIZE;
     index = index < 0 ? -index : index;
-    while (blks[index].c_hash != h) {
+    while (blks[index].c_hash != h && umark[index] == mark) {
         index++;
         index = index % BLOCK_HASH_SIZE;
         index = index < 0 ? -index : index;
@@ -92,6 +89,7 @@ int blks_num[5];
 
 void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) {
     mark++;
+    half_S = S / 2 + 1;
     for (int t = 0; t < BLOCK_HASH_SIZE; t++) {
         blks[t].s_num = 0;
     }
@@ -105,20 +103,18 @@ void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) 
             int c_hash = calcHash(blockchainimage[s], pos, 4 + 2 + 1 + t_num * 3);
 
             int c_index = cpt_hash_absorb(c_hash);
-            if (c_index != -1) {
-                if (blks[c_index].s_num == 0) {
-                    clearTxAmt(blks[c_index].tx);
-                    blks[c_index].p_hash = p_hash;
-                    blks[c_index].c_hash = c_hash;
-                    for (int k = 0; k < t_num; k++) {
-                        int t_idx = pos + 4 + 2 + 1 + k * 3;
-                        int n = blockchainimage[s][t_idx];
-                        blks[c_index].tx[n] += cpt_b2i(blockchainimage[s], t_idx + 1, 2);
-                    }
+            if (blks[c_index].s_num == 0) {
+                clearTxAmt(blks[c_index].tx);
+                blks[c_index].p_hash = p_hash;
+                blks[c_index].c_hash = c_hash;
+                for (int k = 0; k < t_num; k++) {
+                    int t_idx = pos + 4 + 2 + 1 + k * 3;
+                    int n = blockchainimage[s][t_idx];
+                    blks[c_index].tx[n] += cpt_b2i(blockchainimage[s], t_idx + 1, 2);
                 }
-                blks[c_index].s_num += 1;
-                blks_num[s]++;
             }
+            blks[c_index].s_num += 1;
+            blks_num[s]++;
             pos += (4 + 2 + 1 + t_num * 3);
         }
         int t = 0;
@@ -128,7 +124,7 @@ void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) 
     for (int b = 0; b < BLOCK_HASH_SIZE; b++) {
         if (umark[b] == mark && blks[b].p_hash != 0) {
             int p_hash = blks[b].p_hash;
-            int p_index = cpt_hash_match((p_hash));
+            int p_index = cpt_hash_match(p_hash);
             blks[b].p_index = p_index;
 
             Block *blk_par = &blks[p_index];
@@ -136,14 +132,13 @@ void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) 
         }
     }
 
-    int half_S = S / 2 + 1;
     // find 0 c_score fill to 0 leaf queue
     leafs.lfs_len[0] = 0;
     leafs.lfs_len[1] = 0;
+    int *lfslen = &leafs.lfs_len[0];
     for (int l = 0; l < BLOCK_HASH_SIZE; l++) {
         if (umark[l] == mark && blks[l].c_score == 0) {
-            leafs.lfs[0][leafs.lfs_len[0]] = l;
-            leafs.lfs_len[0]++;
+            leafs.lfs[0][(*lfslen)++] = l;
         }
     }
     // step to reduce leaf and add parent amount
@@ -162,9 +157,8 @@ void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) 
             blks[p_index].c_score--;
             if (blks[p_index].c_score == 0) {
                 int anti_sw = _anti(sw);
-                int lidx = leafs.lfs_len[anti_sw];
-                leafs.lfs[anti_sw][lidx] = p_index;
-                leafs.lfs_len[anti_sw]++;
+                int *lidx = &leafs.lfs_len[anti_sw];
+                leafs.lfs[anti_sw][(*lidx)++] = p_index;
             }
         }
         leafs.lfs_len[sw] = 0;
@@ -174,5 +168,9 @@ void syncBlockChain(int S, unsigned char blockchainimage[MAXSERVER][IMAGESIZE]) 
 
 int calcAmount(int hash, int exchangeid) {
     int index = cpt_hash_match(hash);
-    return blks[index].tx[exchangeid];
+    if (blks[index].s_num >= half_S) {
+        return blks[index].tx[exchangeid];
+    } else {
+        return 0;
+    }
 }
