@@ -2,7 +2,7 @@
  * zhangji 2018-06-23
  */
 
-#define H_LEN   2000
+#define H_LEN   5000
 
 int _N;
 int _M;
@@ -93,6 +93,7 @@ void addPiece(int piece[]) {
     SideBook *sideBook = nullptr;
     Side *side = nullptr;
     for (int n = 0, sum = 0, hi = 0; n < 4; n++) {
+        sum = 0;
         side = createNewStat();
         for (int start = n * _M, j = 0, end = n * _M + _M; start + j < end; j++) {
             sum += sum * 3 + (piece[start + j] + 1);
