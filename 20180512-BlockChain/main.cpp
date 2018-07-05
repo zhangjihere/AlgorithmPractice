@@ -62,6 +62,7 @@ int main() {
     int TC, totalscore;
 
     freopen("sample_input.txt", "r", stdin);
+//    freopen("my_input.txt", "r", stdin);
 
     setbuf(stdout, NULL);
     scanf("%d", &TC);
