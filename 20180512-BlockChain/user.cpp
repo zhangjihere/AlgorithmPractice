@@ -50,6 +50,11 @@ int cpt_hash_absorb(int h) {
     return index;
 }
 
+/**
+ * hash compute, use close hash algorithm, not link list implements
+ * @param h 
+ * @return 
+ */
 int cpt_hash_match(int h) {
     int index = h % BLOCK_HASH_SIZE;
     index = index < 0 ? -index : index;
@@ -69,7 +74,7 @@ int cpt_b2i(unsigned char *bs, int pos, int len) {
     return bs[pos];
 }
 
-int clearTxAmt(int *txAmt) {
+void clearTxAmt(int *txAmt) {
     for (int i = 1; i < MAXTRANSACTION; i++) {
         txAmt[i] = 0;
     }
